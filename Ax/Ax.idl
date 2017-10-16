@@ -1,0 +1,58 @@
+// Ax.idl : IDL source for Ax
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (Ax.tlb) and marshalling code.
+
+#include "olectl.h"
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+	object,
+	uuid(EEA7C0E0-301E-481A-9208-1878AC7DEB01),
+	dual,
+	oleautomation,
+	nonextensible,
+	pointer_default(unique)
+]
+interface ILeaker : IDispatch{
+	[id(1)] HRESULT ubyte1([in] ULONGLONG ea, [out, retval] ULONG* result);
+	[id(2)] HRESULT sbyte1([in] ULONGLONG ea, [out, retval] LONG* result);
+	[id(3)] HRESULT uint2([in] ULONGLONG ea, [out, retval] ULONG* result);
+	[id(4)] HRESULT sint2([in] ULONGLONG ea, [out, retval] LONG* result);
+	[id(5)] HRESULT uint4([in] ULONGLONG ea, [out, retval] ULONG* result);
+	[id(6)] HRESULT sint4([in] ULONGLONG ea, [out, retval] LONG* result);
+	[id(7)] HRESULT uint8([in] ULONGLONG ea, [out, retval] ULONG* result);
+	[id(8)] HRESULT sint8([in] ULONGLONG ea, [out, retval] LONG* result);
+	[id(9)] HRESULT binary32([in] ULONGLONG ea, [out, retval] FLOAT* result);
+	[id(10)] HRESULT binary64([in] ULONGLONG ea, [out, retval] DOUBLE* result);
+	[id(11)] HRESULT getProcessEnvironmentBlock([out, retval] ULONGLONG* PebBaseAddress);
+	[id(12)] HRESULT getThreadEnvironmentBlock([in] ULONG dwThreadId, [out, retval] ULONGLONG* TebBaseAddress);
+	[id(13)] HRESULT getLastError([out, retval] ULONG* dwErrorCode);
+	[id(14)] HRESULT getErrorMessage([in] ULONG dwErrorCode, [out, retval] BSTR* bstrErrorMessage);
+	[propget, id(15)] HRESULT syntax([out, retval] BSTR* pVal);
+	[propput, id(15)] HRESULT syntax([in] BSTR newVal);
+	[propget, id(16)] HRESULT bits([out, retval] LONG* pVal);
+	[propput, id(16)] HRESULT bits([in] LONG newVal);
+	[id(17)] HRESULT disassemble([in] ULONGLONG ea, [in] LONG n, [out, retval] BSTR* result);
+	[id(18)] HRESULT dump([in] ULONGLONG ea, [in] LONG n, [in] BSTR type, [out, retval] BSTR* result);
+};
+
+[
+	uuid(D0480AA4-1478-406F-B73C-6E28F7C31F87),
+	version(1.0),
+]
+library AxLib
+{
+	importlib("stdole2.tlb");
+	[
+		uuid(2C4E75A2-7EDC-4886-B7BA-0EABA901899F),		
+		control
+	]
+	coclass Leaker
+	{
+		[default] interface ILeaker;
+	};
+};
+

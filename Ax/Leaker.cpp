@@ -1,0 +1,511 @@
+// Leaker.cpp : Implementation of CLeaker
+#include "stdafx.h"
+#include "Leaker.h"
+
+#include <winternl.h>
+#include <windows.h>
+#include <comutil.h>
+
+#include <sstream>
+#include <cstdint>
+using namespace std;
+
+namespace ndk {
+	/* FIXME: replace this with the ndk repo */
+	enum THREADINFOCLASS {
+		ThreadBasicInformation
+	};
+
+	typedef NTSTATUS(WINAPI *PNtQueryInformationProcess)(HANDLE ProcessHandle, ::PROCESSINFOCLASS ProcessInformationClass, PVOID ProcessInformation, ULONG ProcessInformationLength, PULONG ReturnLength);
+	typedef NTSTATUS(WINAPI *PNtQueryInformationThread)(HANDLE ThreadHandle, ::THREADINFOCLASS ThreadInformationClass, PVOID ThreadInformation, ULONG ThreadInformationLength, PULONG ReturnLength);
+
+	typedef LONG NTSTATUS;
+	typedef DWORD KPRIORITY;
+	typedef WORD UWORD;
+
+	typedef struct _CLIENT_ID
+	{
+		PVOID UniqueProcess;
+		PVOID UniqueThread;
+	} CLIENT_ID, *PCLIENT_ID;
+
+	typedef struct _THREAD_BASIC_INFORMATION
+	{
+		NTSTATUS                ExitStatus;
+		PVOID                   TebBaseAddress;
+		CLIENT_ID               ClientId;
+		KAFFINITY               AffinityMask;
+		KPRIORITY               Priority;
+		KPRIORITY               BasePriority;
+	} THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
+}
+
+namespace utils {
+	// byte
+	static uint8_t
+	ubyte1(intptr_t ea)
+	{
+		return *(uint8_t*)(ea);
+	}
+	static int8_t
+	sbyte1(intptr_t ea)
+	{
+		return *(int8_t*)(ea);
+	}
+
+	// word
+	static uint16_t
+	uint2(intptr_t ea)
+	{
+		return *(uint16_t*)(ea);
+	}
+	static int16_t
+	sint2(intptr_t ea)
+	{
+		return *(int16_t*)(ea);
+	}
+
+	// dword
+	static uint32_t
+	uint4(intptr_t ea)
+	{
+		return *(uint32_t*)(ea);
+	}
+	static int32_t
+	sint4(intptr_t ea)
+	{
+		return *(int32_t*)(ea);
+	}
+
+	// qword
+	static uint64_t
+	uint8(intptr_t ea)
+	{
+		return *(uint64_t*)(ea);
+	}
+
+	static int64_t
+	sint8(intptr_t ea)
+	{
+		return *(int64_t*)(ea);
+	}
+
+	// floating-point
+	static float
+	binary32(intptr_t ea)
+	{
+		return *(float*)(ea);
+	}
+
+	static double
+	binary64(intptr_t ea)
+	{
+		return *(double*)(ea);
+	}
+
+	// platform specific calls
+	static intptr_t
+	getProcessEnvironmentBlock()
+	{
+		static ndk::PNtQueryInformationProcess NtQueryInformationProcess = NULL;
+
+		NTSTATUS notok; ULONG dwLength;
+		HANDLE hProcess;
+		PROCESS_BASIC_INFORMATION info;
+
+		if (NtQueryInformationProcess == NULL) {
+			HMODULE hNtDll = LoadLibrary(L"ntdll.dll");
+			if (hNtDll == NULL)
+				return (intptr_t)0;
+
+			NtQueryInformationProcess = reinterpret_cast<decltype(NtQueryInformationProcess)>(GetProcAddress(hNtDll, "NtQueryInformationProcess"));
+			if (NtQueryInformationProcess == NULL)
+				return (intptr_t)0;
+		}
+
+		hProcess = ::GetCurrentProcess();
+
+		memset(&info, 0, sizeof(info));
+		notok = NtQueryInformationProcess(hProcess, ProcessBasicInformation, &info, sizeof(info), &dwLength);
+		if (notok || dwLength < offsetof(PROCESS_BASIC_INFORMATION, PebBaseAddress) + sizeof(info.PebBaseAddress))
+			return (intptr_t)0;
+		return (intptr_t)info.PebBaseAddress;
+	}
+
+	static intptr_t
+	getThreadEnvironmentBlock(DWORD dwTid)
+	{
+		static ndk::PNtQueryInformationThread NtQueryInformationThread = NULL;
+
+		NTSTATUS notok; ULONG dwLength;
+		HANDLE hThread;
+		ndk::THREAD_BASIC_INFORMATION info;
+
+		if (NtQueryInformationThread == NULL) {
+			HMODULE hNtDll = LoadLibrary(L"ntdll.dll");
+			if (hNtDll == NULL)
+				return (intptr_t)0;
+
+			NtQueryInformationThread = reinterpret_cast<decltype(NtQueryInformationThread)>(GetProcAddress(hNtDll, "NtQueryInformationThread"));
+			if (NtQueryInformationThread == NULL)
+				return (intptr_t)0;
+		}
+
+		memset(&info, 0, sizeof(info));
+
+		hThread = ::OpenThread(THREAD_QUERY_INFORMATION, FALSE, dwTid);
+		notok = NtQueryInformationThread(hThread, (::THREADINFOCLASS)ndk::ThreadBasicInformation, &info, sizeof(info), &dwLength);
+		CloseHandle(hThread);
+
+		if (notok || dwLength < offsetof(ndk::THREAD_BASIC_INFORMATION, TebBaseAddress) + sizeof(info.TebBaseAddress))
+			return (intptr_t)0;
+		return (intptr_t)info.TebBaseAddress;
+	}
+
+	static DWORD
+	getLastError()
+	{
+		return ::GetLastError();
+	}
+
+	static void
+	setLastError(DWORD code)
+	{
+		::SetLastErrorEx(code, 0);
+	}
+
+	static DWORD
+	getLastErrorString(DWORD code, wchar_t** string)
+	{
+		int res;
+		wchar_t* p;
+		DWORD err;
+
+		res = ::FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM,
+			0,
+			code,
+			0,
+			(LPWSTR)(&p),	//wchar_t**
+			0,
+			NULL
+		);
+		err = ::GetLastError();
+
+		if (res) {
+			if (err == ERROR_SUCCESS)
+				*string = ::_wcsdup(p);
+			(HLOCAL)LocalFree(p);
+		} else
+			*string = NULL;
+
+		return err;
+	}
+}
+
+// CLeaker
+STDMETHODIMP CLeaker::ubyte1(ULONGLONG ea, ULONG* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+	try {
+		auto res = utils::ubyte1(p);
+		*result = static_cast<ULONG>(res);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::sbyte1(ULONGLONG ea, LONG* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+
+	try {
+		auto res = utils::sbyte1(p);
+		*result = static_cast<LONG>(res);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::uint2(ULONGLONG ea, ULONG* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+	try {
+		auto res = utils::uint2(p);
+		*result = static_cast<ULONG>(res);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::sint2(ULONGLONG ea, LONG* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+	try {
+		auto res = utils::sint2(p);
+		*result = static_cast<LONG>(res);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::uint4(ULONGLONG ea, ULONG* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+	try {
+		auto res = utils::uint4(p);
+		*result = static_cast<ULONG>(res);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::sint4(ULONGLONG ea, LONG* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+	try {
+		auto res = utils::sint4(p);
+		*result = static_cast<LONG>(res);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::uint8(ULONGLONG ea, ULONG* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+	try {
+		auto res = utils::uint8(p);
+		*result = static_cast<ULONG>(res);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::sint8(ULONGLONG ea, LONG* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+	try {
+		auto res = utils::sint8(p);
+		*result = static_cast<LONG>(res);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::binary32(ULONGLONG ea, FLOAT* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+	try {
+		auto res = utils::binary32(p);
+		*result = static_cast<FLOAT>(res);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::binary64(ULONGLONG ea, DOUBLE* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+	try {
+		auto res = utils::binary64(p);
+		*result = static_cast<DOUBLE>(res);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::getProcessEnvironmentBlock(ULONGLONG* PebBaseAddress)
+{
+	auto res = utils::getProcessEnvironmentBlock();
+	*PebBaseAddress = static_cast<ULONGLONG>(res);
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::getThreadEnvironmentBlock(ULONG dwThreadId, ULONGLONG* TebBaseAddress)
+{
+	dwThreadId = ::GetCurrentThreadId();
+	auto res = utils::getThreadEnvironmentBlock(dwThreadId);
+	*TebBaseAddress = static_cast<ULONGLONG>(res);
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::getLastError(ULONG* dwErrorCode)
+{
+	auto result = utils::getLastError();
+	*dwErrorCode = static_cast<LONG>(result);
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::getErrorMessage(ULONG dwErrorCode, BSTR* bstrErrorMessage)
+{
+	wchar_t* wstr;
+	auto err = utils::getLastErrorString(static_cast<DWORD>(dwErrorCode), &wstr);
+	if (err != ERROR_SUCCESS)
+		return S_FALSE;
+
+	auto bstrResult = ::SysAllocString(wstr);
+	free(wstr);
+
+	if (bstrResult == NULL)
+		return S_FALSE;
+
+	*bstrErrorMessage = bstrResult;
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::get_syntax(BSTR* pVal)
+{
+	auto bstrSyntax = _com_util::ConvertStringToBSTR(OptionToSyntax(disasm.m_syntax));
+	if (bstrSyntax == NULL)
+		return S_FALSE;
+
+	*pVal = bstrSyntax;
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::put_syntax(BSTR newVal)
+{
+	auto syntax = _com_util::ConvertBSTRToString(newVal);
+	auto res = S_OK;
+
+	if (syntax == NULL)
+		return S_FALSE;
+
+	try {
+		(cs_opt_value)disasm.syntax(SyntaxToOption(syntax));
+	}
+	catch (...) {
+		res = S_FALSE;
+	}
+
+	delete[] syntax;
+	return res;
+}
+
+STDMETHODIMP CLeaker::get_bits(LONG* pVal)
+{
+	*pVal = disasm.m_bits;
+	return S_OK;
+}
+
+STDMETHODIMP CLeaker::put_bits(LONG newVal)
+{
+	try {
+		(int)disasm.bits(newVal);
+	}
+	catch (...) {
+		return S_FALSE;
+	}
+	return S_OK;
+}
+
+
+STDMETHODIMP CLeaker::disassemble(ULONGLONG ea, LONG n, BSTR* result)
+{
+	std::stringstream os;
+	intptr_t p = static_cast<intptr_t>(ea);
+
+	try {
+		if (disasm.disasm(p, n, os) != static_cast<size_t>(n))
+			return S_FALSE;
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+
+	auto bstr = _com_util::ConvertStringToBSTR(os.str().c_str());
+	if (bstr == NULL)
+		return S_FALSE;
+
+	*result = bstr;
+	return S_OK;
+}
+
+static struct {
+	const char* type;
+	Dumper::dumptype dumper;
+} dumptypes[] = {
+	{ "ubyte1", &Dumper::dump<uint8_t> },
+	{ "uint2", &Dumper::dump<uint16_t> },
+	{ "uint4", &Dumper::dump<uint32_t> },
+	{ "uint8", &Dumper::dump<uint64_t> },
+	{ "binary32", &Dumper::dump<float> },
+	{ "binary64", &Dumper::dump<double> },
+	{ NULL, NULL }
+};
+
+Dumper::dumptype
+cstringToDumptype(std::string type)
+{
+	auto p = &dumptypes[0];
+	while (p->type) {
+		if (type.compare(p->type) == 0)
+			return p->dumper;
+		p++;
+	}
+	throw std::invalid_argument(type);
+}
+
+STDMETHODIMP CLeaker::dump(ULONGLONG ea, LONG n, BSTR type, BSTR* result)
+{
+	std::stringstream os;
+	intptr_t p = static_cast<intptr_t>(ea);
+
+	// figure out what type the user wants
+	auto tempstr = _com_util::ConvertBSTRToString(type);
+	if (tempstr == NULL)
+		return S_FALSE;
+	auto typestr = std::string(tempstr);
+	delete[] tempstr;
+
+	// dump it to the stringstream
+	Dumper::dumptype dumper = cstringToDumptype(typestr);
+	Dumper d(disasm.m_bits, 16);
+
+	try {
+		(d.*dumper)(p, n, os);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+
+	// render the stringstream and then return it
+	auto bstr = _com_util::ConvertStringToBSTR(os.str().c_str());
+	if (bstr == NULL)
+		return S_FALSE;
+	*result = bstr;
+	return S_OK;
+}

@@ -1,0 +1,20 @@
+# User-specific files
+/*/*.user
+
+# Build Results
+/*/Debug
+/*/Release
+
+# Build Results of an ATL Project
+/*/dlldata.c
+
+/*/*_i.c
+/*/*_i.h
+/*/*_p.c
+
+# Visual C++ cache files
+/.vs
+/ipch
+/*.sdf
+/*.VC.db
+/*/*.aps

@@ -1,0 +1,32 @@
+HKCR
+{
+	Ax.Leaker.1 = s 'Leaker Class'
+	{
+		CLSID = s '{2C4E75A2-7EDC-4886-B7BA-0EABA901899F}'
+	}
+	Ax.Leaker = s 'Leaker Class'
+	{		
+		CurVer = s 'Ax.Leaker.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {2C4E75A2-7EDC-4886-B7BA-0EABA901899F} = s 'Leaker Class'
+		{
+			ProgID = s 'Ax.Leaker.1'
+			VersionIndependentProgID = s 'Ax.Leaker'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			ForceRemove Control
+			ForceRemove 'ToolboxBitmap32' = s '%MODULE%, 106'
+			MiscStatus = s '0'
+			{
+			    '1' = s '%OLEMISC%'
+			}
+			TypeLib = s '{D0480AA4-1478-406F-B73C-6E28F7C31F87}'
+			Version = s '1.0'
+		}
+	}
+}
