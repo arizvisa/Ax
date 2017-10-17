@@ -102,26 +102,38 @@ public:
 	{
 	}
 
-	STDMETHOD(ubyte1)(ULONGLONG ea, ULONG* result);
-	STDMETHOD(sbyte1)(ULONGLONG ea, LONG* result);
-	STDMETHOD(uint2)(ULONGLONG ea, ULONG* result);
-	STDMETHOD(sint2)(ULONGLONG ea, LONG* result);
-	STDMETHOD(uint4)(ULONGLONG ea, ULONG* result);
-	STDMETHOD(sint4)(ULONGLONG ea, LONG* result);
-	STDMETHOD(uint8)(ULONGLONG ea, ULONG* result);
-	STDMETHOD(sint8)(ULONGLONG ea, LONG* result);
-	STDMETHOD(binary32)(ULONGLONG ea, FLOAT* result);
-	STDMETHOD(binary64)(ULONGLONG ea, DOUBLE* result);
-	STDMETHOD(getProcessEnvironmentBlock)(ULONGLONG* PebBaseAddress);
-	STDMETHOD(getThreadEnvironmentBlock)(ULONG dwThreadId, ULONGLONG* TebBaseAddress);
-	STDMETHOD(getLastError)(ULONG* dwErrorCode);
-	STDMETHOD(getErrorMessage)(ULONG dwErrorCode, BSTR* bstrErrorMessage);
+	STDMETHOD(breakpoint)();
+
 	STDMETHOD(get_syntax)(BSTR* pVal);
 	STDMETHOD(put_syntax)(BSTR newVal);
 	STDMETHOD(get_bits)(LONG* pVal);
 	STDMETHOD(put_bits)(LONG newVal);
 	STDMETHOD(disassemble)(ULONGLONG ea, LONG n, BSTR* result);
 	STDMETHOD(dump)(ULONGLONG ea, LONG n, BSTR type, BSTR* result);
-	};
+
+	STDMETHOD(uint8_t)(ULONGLONG ea, ULONG* result);
+	STDMETHOD(sint8_t)(ULONGLONG ea, LONG* result);
+	STDMETHOD(uint16_t)(ULONGLONG ea, ULONG* result);
+	STDMETHOD(sint16_t)(ULONGLONG ea, LONG* result);
+	STDMETHOD(uint32_t)(ULONGLONG ea, ULONG* result);
+	STDMETHOD(sint32_t)(ULONGLONG ea, LONG* result);
+	STDMETHOD(uint64_t)(ULONGLONG ea, ULONG* result);
+	STDMETHOD(sint64_t)(ULONGLONG ea, LONG* result);
+	STDMETHOD(binary32)(ULONGLONG ea, FLOAT* result);
+	STDMETHOD(binary64)(ULONGLONG ea, DOUBLE* result);
+	STDMETHOD(unicodestring)(ULONGLONG ea, BSTR* result);
+	STDMETHOD(ansistring)(ULONGLONG ea, BSTR* result);
+
+	STDMETHOD(getPeb)(ULONGLONG* PebBaseAddress);
+	STDMETHOD(getTeb)(ULONG dwThreadId, ULONGLONG* TebBaseAddress);
+	STDMETHOD(getlasterror)(ULONG* dwErrorCode);
+	STDMETHOD(geterrormessage)(ULONG dwErrorCode, BSTR* bstrErrorMessage);
+
+	STDMETHOD(mem_baseaddress)(ULONGLONG ea, ULONGLONG* result);
+	STDMETHOD(mem_size)(ULONGLONG ea, ULONGLONG* result);
+	STDMETHOD(mem_state)(ULONGLONG ea, ULONGLONG* result);
+	STDMETHOD(mem_protect)(ULONGLONG ea, ULONGLONG* result);
+	STDMETHOD(mem_type)(ULONGLONG ea, ULONGLONG* result);
+};
 
 OBJECT_ENTRY_AUTO(__uuidof(Leaker), CLeaker)

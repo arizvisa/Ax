@@ -6,10 +6,6 @@
 
 #include <capstone.h>
 
-/* external function signatures */
-enum cs_opt_value SyntaxToOption(const char* syntax);
-const char* OptionToSyntax(enum cs_opt_value option);
-
 /** class definitions */
 class Disassembler {
 protected:

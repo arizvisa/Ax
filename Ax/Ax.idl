@@ -17,26 +17,44 @@ import "ocidl.idl";
 	pointer_default(unique)
 ]
 interface ILeaker : IDispatch{
-	[id(1)] HRESULT ubyte1([in] ULONGLONG ea, [out, retval] ULONG* result);
-	[id(2)] HRESULT sbyte1([in] ULONGLONG ea, [out, retval] LONG* result);
-	[id(3)] HRESULT uint2([in] ULONGLONG ea, [out, retval] ULONG* result);
-	[id(4)] HRESULT sint2([in] ULONGLONG ea, [out, retval] LONG* result);
-	[id(5)] HRESULT uint4([in] ULONGLONG ea, [out, retval] ULONG* result);
-	[id(6)] HRESULT sint4([in] ULONGLONG ea, [out, retval] LONG* result);
-	[id(7)] HRESULT uint8([in] ULONGLONG ea, [out, retval] ULONG* result);
-	[id(8)] HRESULT sint8([in] ULONGLONG ea, [out, retval] LONG* result);
-	[id(9)] HRESULT binary32([in] ULONGLONG ea, [out, retval] FLOAT* result);
-	[id(10)] HRESULT binary64([in] ULONGLONG ea, [out, retval] DOUBLE* result);
-	[id(11)] HRESULT getProcessEnvironmentBlock([out, retval] ULONGLONG* PebBaseAddress);
-	[id(12)] HRESULT getThreadEnvironmentBlock([in] ULONG dwThreadId, [out, retval] ULONGLONG* TebBaseAddress);
-	[id(13)] HRESULT getLastError([out, retval] ULONG* dwErrorCode);
-	[id(14)] HRESULT getErrorMessage([in] ULONG dwErrorCode, [out, retval] BSTR* bstrErrorMessage);
-	[propget, id(15)] HRESULT syntax([out, retval] BSTR* pVal);
-	[propput, id(15)] HRESULT syntax([in] BSTR newVal);
-	[propget, id(16)] HRESULT bits([out, retval] LONG* pVal);
-	[propput, id(16)] HRESULT bits([in] LONG newVal);
-	[id(17)] HRESULT disassemble([in] ULONGLONG ea, [in] LONG n, [out, retval] BSTR* result);
-	[id(18)] HRESULT dump([in] ULONGLONG ea, [in] LONG n, [in] BSTR type, [out, retval] BSTR* result);
+	[id(1)] HRESULT breakpoint();
+
+	/* disassembler and dumper */
+	[propget, id(2)] HRESULT syntax([out, retval] BSTR* pVal);
+	[propput, id(2)] HRESULT syntax([in] BSTR newVal);
+	[propget, id(3)] HRESULT bits([out, retval] LONG* pVal);
+	[propput, id(3)] HRESULT bits([in] LONG newVal);
+	[id(4)] HRESULT disassemble([in] ULONGLONG ea, [in] LONG n, [out, retval] BSTR* result);
+	[id(5)] HRESULT dump([in] ULONGLONG ea, [in] LONG n, [in] BSTR type, [out, retval] BSTR* result);
+
+	/* integer extraction */
+	[id(6)] HRESULT uint8_t([in] ULONGLONG ea, [out, retval] ULONG* result);
+	[id(7)] HRESULT sint8_t([in] ULONGLONG ea, [out, retval] LONG* result);
+	[id(8)] HRESULT uint16_t([in] ULONGLONG ea, [out, retval] ULONG* result);
+	[id(9)] HRESULT sint16_t([in] ULONGLONG ea, [out, retval] LONG* result);
+	[id(10)] HRESULT uint32_t([in] ULONGLONG ea, [out, retval] ULONG* result);
+	[id(11)] HRESULT sint32_t([in] ULONGLONG ea, [out, retval] LONG* result);
+	[id(12)] HRESULT uint64_t([in] ULONGLONG ea, [out, retval] ULONG* result);
+	[id(13)] HRESULT sint64_t([in] ULONGLONG ea, [out, retval] LONG* result);
+	[id(14)] HRESULT binary32([in] ULONGLONG ea, [out, retval] FLOAT* result);
+	[id(15)] HRESULT binary64([in] ULONGLONG ea, [out, retval] DOUBLE* result);
+
+	/* string extraction */
+	[id(16)] HRESULT unicodestring([in] ULONGLONG ea, [out, retval] BSTR* result);
+	[id(17)] HRESULT ansistring([in] ULONGLONG ea, [out, retval] BSTR* result);
+
+	/* ndk wrappers */
+	[id(18)] HRESULT getPeb([out, retval] ULONGLONG* PebBaseAddress);
+	[id(19)] HRESULT getTeb([in] ULONG dwThreadId, [out, retval] ULONGLONG* TebBaseAddress);
+	[id(20)] HRESULT getlasterror([out, retval] ULONG* dwErrorCode);
+	[id(21)] HRESULT geterrormessage([in] ULONG dwErrorCode, [out, retval] BSTR* bstrErrorMessage);
+
+	/* virtualquery wrappers */
+	[id(22)] HRESULT mem_baseaddress([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
+	[id(23)] HRESULT mem_size([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
+	[id(24)] HRESULT mem_state([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
+	[id(25)] HRESULT mem_protect([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
+	[id(26)] HRESULT mem_type([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
 };
 
 [

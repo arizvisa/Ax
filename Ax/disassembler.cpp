@@ -8,40 +8,6 @@
 #include "disassembler.h"
 
 /** globals */
-static struct {
-	const char* identifier;
-	enum cs_opt_value option;
-} SyntaxList[] = {
-	{"default", CS_OPT_SYNTAX_DEFAULT},
-	{"intel", CS_OPT_SYNTAX_INTEL},
-	{"att", CS_OPT_SYNTAX_ATT},
-	{NULL, (cs_opt_value)0}
-};
-
-enum cs_opt_value
-SyntaxToOption(const char* syntax)
-{
-	auto p = &SyntaxList[0];
-	while (p->identifier) {
-		if (strcmp(syntax, p->identifier) == 0)
-			return p->option;
-		p++;
-	}
-	throw std::invalid_argument(syntax);
-}
-
-const char*
-OptionToSyntax(enum cs_opt_value option)
-{
-	auto p = &SyntaxList[0];
-	while (p->identifier) {
-		if (p->option == option)
-			return p->identifier;
-		p++;
-	}
-	throw std::invalid_argument(std::to_string(option));
-}
-
 void
 Disassembler::option(enum cs_opt_type type, size_t value)
 {
