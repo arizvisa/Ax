@@ -44,8 +44,8 @@ interface ILeaker : IDispatch{
 	[id(17)] HRESULT ansistring([in] ULONGLONG ea, [out, retval] BSTR* result);
 
 	/* ndk wrappers */
-	[id(18)] HRESULT getPeb([out, retval] ULONGLONG* PebBaseAddress);
-	[id(19)] HRESULT getTeb([in] ULONG dwThreadId, [out, retval] ULONGLONG* TebBaseAddress);
+	[id(18)] HRESULT Peb([out, retval] ULONGLONG* PebBaseAddress);
+	[id(19)] HRESULT Teb([in] ULONG dwThreadId, [out, retval] ULONGLONG* TebBaseAddress);
 	[id(20)] HRESULT getlasterror([out, retval] ULONG* dwErrorCode);
 	[id(21)] HRESULT geterrormessage([in] ULONG dwErrorCode, [out, retval] BSTR* bstrErrorMessage);
 

@@ -124,8 +124,8 @@ public:
 	STDMETHOD(unicodestring)(ULONGLONG ea, BSTR* result);
 	STDMETHOD(ansistring)(ULONGLONG ea, BSTR* result);
 
-	STDMETHOD(getPeb)(ULONGLONG* PebBaseAddress);
-	STDMETHOD(getTeb)(ULONG dwThreadId, ULONGLONG* TebBaseAddress);
+	STDMETHOD(Peb)(ULONGLONG* PebBaseAddress);
+	STDMETHOD(Teb)(ULONG dwThreadId, ULONGLONG* TebBaseAddress);
 	STDMETHOD(getlasterror)(ULONG* dwErrorCode);
 	STDMETHOD(geterrormessage)(ULONG dwErrorCode, BSTR* bstrErrorMessage);
 

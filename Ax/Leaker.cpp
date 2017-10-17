@@ -607,14 +607,14 @@ STDMETHODIMP CLeaker::ansistring(ULONGLONG ea, BSTR* result)
 }
 
 /* CLeaker NDK wrappers */
-STDMETHODIMP CLeaker::getPeb(ULONGLONG* PebBaseAddress)
+STDMETHODIMP CLeaker::Peb(ULONGLONG* PebBaseAddress)
 {
 	auto res = utils::getProcessEnvironmentBlock();
 	*PebBaseAddress = static_cast<ULONGLONG>(res);
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::getTeb(ULONG dwThreadId, ULONGLONG* TebBaseAddress)
+STDMETHODIMP CLeaker::Teb(ULONG dwThreadId, ULONGLONG* TebBaseAddress)
 {
 	dwThreadId = ::GetCurrentThreadId();
 	auto res = utils::getThreadEnvironmentBlock(dwThreadId);
