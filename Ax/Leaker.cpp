@@ -20,13 +20,9 @@ namespace utils {
 		Dumper::dumptype dumper;
 	} dumptypes[] = {
 		{ "uint8_t", &Dumper::dump<uint8_t> },
-		{ "sint8_t", &Dumper::dump<int8_t> },
 		{ "uint16_t", &Dumper::dump<uint16_t> },
-		{ "sint16_t", &Dumper::dump<int16_t> },
 		{ "uint32_t", &Dumper::dump<uint32_t> },
-		{ "sint32_t", &Dumper::dump<int32_t> },
 		{ "uint64_t", &Dumper::dump<uint64_t> },
-		{ "sint64_t", &Dumper::dump<int64_t> },
 		{ "float", &Dumper::dump<float> },
 		{ "double", &Dumper::dump<double> },
 

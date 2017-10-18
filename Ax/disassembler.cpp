@@ -128,6 +128,11 @@ Dumper::printable(intptr_t ea, size_t count, std::ostream& os)
 }
 
 void
+Dumper::item(uint8_t value, std::ostream& os) {
+	os << std::hex << std::setfill('0') << std::setw(2) << (int)(value&0xff);
+}
+
+void
 Dumper::item(float value, std::ostream& os)
 {
 	static const char* scientific_chars = "-.e-";

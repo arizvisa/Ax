@@ -87,8 +87,9 @@ protected:
 	/* protected utility members */
 	template <typename T>
 	void item(T& value, std::ostream& os) {
-		os << std::hex << std::setw(sizeof(T) * 2) << (int)value;
+		os << std::hex << std::setfill('0') << std::setw(sizeof(T) * 2) << value;
 	}
+	void item(uint8_t value, std::ostream& os);
 
 	// Because the C++ standard sucks and doesn't allow you to use floating-point types as a typename...
 	void item(float value, std::ostream& os);

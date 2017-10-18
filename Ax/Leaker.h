@@ -29,10 +29,8 @@ private:
 	Disassembler disasm;
 
 public:
-	CLeaker()
-		: disasm()
-	{
-	}
+	CLeaker() : disasm()
+	{}
 
 DECLARE_OLEMISC_STATUS(OLEMISC_RECOMPOSEONRESIZE |
 	OLEMISC_INVISIBLEATRUNTIME |
@@ -43,7 +41,6 @@ DECLARE_OLEMISC_STATUS(OLEMISC_RECOMPOSEONRESIZE |
 )
 
 DECLARE_REGISTRY_RESOURCEID(IDR_LEAKER)
-
 
 DECLARE_NOT_AGGREGATABLE(CLeaker)
 
@@ -63,11 +60,7 @@ BEGIN_COM_MAP(CLeaker)
 END_COM_MAP()
 
 BEGIN_PROP_MAP(CLeaker)
-	PROP_DATA_ENTRY("_cx", m_sizeExtent.cx, VT_UI4)
-	PROP_DATA_ENTRY("_cy", m_sizeExtent.cy, VT_UI4)
-	// Example entries
-	// PROP_ENTRY_TYPE("Property Name", dispid, clsid, vtType)
-	// PROP_PAGE(CLSID_StockColorPage)
+	// ...
 END_PROP_MAP()
 
 
@@ -85,12 +78,6 @@ END_MSG_MAP()
 
 // ILeaker
 public:
-	HRESULT OnDrawAdvanced(ATL_DRAWINFO& di)
-	{
-		return S_OK;
-	}
-
-
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
 	HRESULT FinalConstruct()
@@ -99,8 +86,7 @@ public:
 	}
 
 	void FinalRelease()
-	{
-	}
+	{}
 
 	STDMETHOD(breakpoint)();
 

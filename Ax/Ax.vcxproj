@@ -303,9 +303,6 @@
     <Midl Include="Ax.idl" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Leaker.bmp" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="$(SolutionDir)capstone\msvc\capstone_static\capstone_static.vcxproj">
       <Project>{5b01d900-2359-44ca-9914-6b0c6afb7be7}</Project>
     </ProjectReference>
