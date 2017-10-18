@@ -14,7 +14,7 @@ protected:
 
 public:
 	/* public properties */
-	int m_bits;
+	size_t m_bits;
 	enum cs_opt_value m_syntax;
 
 public:
@@ -64,7 +64,7 @@ public:
 
 	enum cs_opt_value syntax(enum cs_opt_value);
 
-	int bits(int num);
+	size_t bits(size_t num);
 
 	size_t size(intptr_t ea, size_t count);
 	size_t disasm(intptr_t ea, size_t count, std::ostream& os);
@@ -77,8 +77,8 @@ public:
 
 private:
 	/* private members */
-	int m_bits;
-	int m_width;
+	size_t m_bits;
+	size_t m_width;
 
 	const char unprintable = '.';
 	const std::string divider = " | ";
@@ -128,7 +128,7 @@ protected:
 
 public:
 	/* public interface */
-	Dumper(int bits, int width) : m_bits(bits), m_width(width) {}
+	Dumper(size_t bits, size_t width) : m_bits(bits), m_width(width) {}
 	~Dumper() {}
 
 	template <typename T>

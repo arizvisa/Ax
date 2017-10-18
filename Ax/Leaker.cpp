@@ -361,16 +361,16 @@ STDMETHODIMP CLeaker::put_syntax(BSTR newVal)
 	return res;
 }
 
-STDMETHODIMP CLeaker::get_bits(LONG* pVal)
+STDMETHODIMP CLeaker::get_bits(ULONG* pVal)
 {
 	*pVal = disasm.m_bits;
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::put_bits(LONG newVal)
+STDMETHODIMP CLeaker::put_bits(ULONG newVal)
 {
 	try {
-		(int)disasm.bits(newVal);
+		(size_t)disasm.bits(newVal);
 	}
 	catch (...) {
 		return S_FALSE;
@@ -378,7 +378,7 @@ STDMETHODIMP CLeaker::put_bits(LONG newVal)
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::disassemble(ULONGLONG ea, LONG n, BSTR* result)
+STDMETHODIMP CLeaker::disassemble(ULONGLONG ea, ULONG n, BSTR* result)
 {
 	std::stringstream os;
 	intptr_t p = static_cast<intptr_t>(ea);
@@ -400,7 +400,7 @@ STDMETHODIMP CLeaker::disassemble(ULONGLONG ea, LONG n, BSTR* result)
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::dump(ULONGLONG ea, LONG n, BSTR type, BSTR* result)
+STDMETHODIMP CLeaker::dump(ULONGLONG ea, ULONG n, BSTR type, BSTR* result)
 {
 	std::stringstream os;
 	intptr_t p = static_cast<intptr_t>(ea);
@@ -409,7 +409,7 @@ STDMETHODIMP CLeaker::dump(ULONGLONG ea, LONG n, BSTR type, BSTR* result)
 	auto tempstr = _com_util::ConvertBSTRToString(type);
 	if (tempstr == NULL)
 		return S_FALSE;
-	auto typestr = std::string(tempstr);
+	std::string typestr(tempstr);
 	delete[] tempstr;
 
 	// dump it to the stringstream
@@ -434,7 +434,7 @@ STDMETHODIMP CLeaker::dump(ULONGLONG ea, LONG n, BSTR type, BSTR* result)
 
 
 /* CLeaker integer extraction */
-STDMETHODIMP CLeaker::uint8_t(ULONGLONG ea, ULONG* result)
+STDMETHODIMP CLeaker::uint8_t(ULONGLONG ea, ULONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
@@ -448,7 +448,7 @@ STDMETHODIMP CLeaker::uint8_t(ULONGLONG ea, ULONG* result)
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::sint8_t(ULONGLONG ea, LONG* result)
+STDMETHODIMP CLeaker::sint8_t(ULONGLONG ea, LONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
 
@@ -463,7 +463,7 @@ STDMETHODIMP CLeaker::sint8_t(ULONGLONG ea, LONG* result)
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::uint16_t(ULONGLONG ea, ULONG* result)
+STDMETHODIMP CLeaker::uint16_t(ULONGLONG ea, ULONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
@@ -477,7 +477,7 @@ STDMETHODIMP CLeaker::uint16_t(ULONGLONG ea, ULONG* result)
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::sint16_t(ULONGLONG ea, LONG* result)
+STDMETHODIMP CLeaker::sint16_t(ULONGLONG ea, LONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
@@ -491,7 +491,7 @@ STDMETHODIMP CLeaker::sint16_t(ULONGLONG ea, LONG* result)
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::uint32_t(ULONGLONG ea, ULONG* result)
+STDMETHODIMP CLeaker::uint32_t(ULONGLONG ea, ULONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
@@ -505,7 +505,7 @@ STDMETHODIMP CLeaker::uint32_t(ULONGLONG ea, ULONG* result)
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::sint32_t(ULONGLONG ea, LONG* result)
+STDMETHODIMP CLeaker::sint32_t(ULONGLONG ea, LONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
@@ -519,7 +519,7 @@ STDMETHODIMP CLeaker::sint32_t(ULONGLONG ea, LONG* result)
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::uint64_t(ULONGLONG ea, ULONG* result)
+STDMETHODIMP CLeaker::uint64_t(ULONGLONG ea, ULONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
@@ -533,7 +533,7 @@ STDMETHODIMP CLeaker::uint64_t(ULONGLONG ea, ULONG* result)
 	return S_OK;
 }
 
-STDMETHODIMP CLeaker::sint64_t(ULONGLONG ea, LONG* result)
+STDMETHODIMP CLeaker::sint64_t(ULONGLONG ea, LONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
@@ -578,12 +578,21 @@ STDMETHODIMP CLeaker::binary64(ULONGLONG ea, DOUBLE* result)
 /* CLeaker string extraction */
 STDMETHODIMP CLeaker::unicodestring(ULONGLONG ea, BSTR* result)
 {
+	std::wstring wstr;
 	intptr_t p = static_cast<intptr_t>(ea);
-
 	PUNICODE_STRING us = reinterpret_cast<PUNICODE_STRING>(p);
-	std::wstring s(us->Buffer, us->Length);
 
-	auto bstr = ::SysAllocString(s.c_str());
+	// convert UNICODE_STRING to an std::wstring
+	try {
+		wstr.assign(us->Buffer, us->Length);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+
+	// convert std::wstring to a BSTR
+	auto bstr = ::SysAllocString(wstr.c_str());
 	if (bstr == NULL)
 		return S_FALSE;
 
@@ -593,12 +602,21 @@ STDMETHODIMP CLeaker::unicodestring(ULONGLONG ea, BSTR* result)
 
 STDMETHODIMP CLeaker::ansistring(ULONGLONG ea, BSTR* result)
 {
+	std::string str;
 	intptr_t p = static_cast<intptr_t>(ea);
-
 	PANSI_STRING as = reinterpret_cast<PANSI_STRING>(p);
-	std::string s(as->Buffer, as->Length);
 
-	auto bstr = _com_util::ConvertStringToBSTR(s.c_str());
+	// convert ANSI_STRING to an std::string
+	try {
+		str.assign(as->Buffer, as->Length);
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+
+	// convert std::string to a BSTR
+	auto bstr = _com_util::ConvertStringToBSTR(str.c_str());
 	if (bstr == NULL)
 		return S_FALSE;
 
@@ -649,103 +667,119 @@ STDMETHODIMP CLeaker::geterrormessage(ULONG dwErrorCode, BSTR* bstrErrorMessage)
 /* CLeaker VirtualQuery wrappers */
 STDMETHODIMP CLeaker::mem_baseaddress(ULONGLONG ea, ULONGLONG* result)
 {
+	const auto bits = disasm.m_bits;
 	DWORD res;
+	MEMORY_BASIC_INFORMATION32 mbi32;
+	MEMORY_BASIC_INFORMATION64 mbi64;
 	
-	#if defined(_M_AMD64) || defined(_M_X64)
-		MEMORY_BASIC_INFORMATION64 mbi;
-	#else
-		MEMORY_BASIC_INFORMATION32 mbi;
-	#endif
+	if (bits == 64)
+		res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi64);
+	else if (bits == 32)
+		res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi32);
+	else
+		res = ERROR_INVALID_PARAMETER;
 
-	res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi);
 	if (res != ERROR_SUCCESS) {
 		::SetLastError(res);
 		return S_FALSE;
 	}
-	*result = mbi.AllocationBase;
+
+	*result = (bits == 64)? mbi64.AllocationBase : mbi32.AllocationBase;
 	return S_OK;
 }
 
 
 STDMETHODIMP CLeaker::mem_size(ULONGLONG ea, ULONGLONG* result)
 {
+	const auto bits = disasm.m_bits;
 	DWORD res;
+	MEMORY_BASIC_INFORMATION32 mbi32;
+	MEMORY_BASIC_INFORMATION64 mbi64;
 
-	#if defined(_M_AMD64) || defined(_M_X64)
-		MEMORY_BASIC_INFORMATION64 mbi;
-	#else
-		MEMORY_BASIC_INFORMATION32 mbi;
-	#endif
+	if (bits == 64)
+		res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi64);
+	else if (bits == 32)
+		res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi32);
+	else
+		res = ERROR_INVALID_PARAMETER;
 
-	res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi);
 	if (res != ERROR_SUCCESS) {
 		::SetLastError(res);
 		return S_FALSE;
 	}
 
-	*result = mbi.RegionSize;
+	*result = (bits == 64)? mbi64.RegionSize : mbi32.RegionSize;
 	return S_OK;
 }
 
 
 STDMETHODIMP CLeaker::mem_state(ULONGLONG ea, ULONGLONG* result)
 {
+	const auto bits = disasm.m_bits;
 	DWORD res;
+	MEMORY_BASIC_INFORMATION32 mbi32;
+	MEMORY_BASIC_INFORMATION64 mbi64;
 
-	#if defined(_M_AMD64) || defined(_M_X64)
-		MEMORY_BASIC_INFORMATION64 mbi;
-	#else
-		MEMORY_BASIC_INFORMATION32 mbi;
-	#endif
+	if (bits == 64)
+		res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi64);
+	else if (bits == 32)
+		res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi32);
+	else
+		res = ERROR_INVALID_PARAMETER;
 
-	res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi);
 	if (res != ERROR_SUCCESS) {
 		::SetLastError(res);
 		return S_FALSE;
 	}
 
-	*result = mbi.State;
+	*result = (bits == 64)? mbi64.State : mbi32.State;
 	return S_OK;
 }
 
 
 STDMETHODIMP CLeaker::mem_protect(ULONGLONG ea, ULONGLONG* result)
 {
+	const auto bits = disasm.m_bits;
 	DWORD res;
+	MEMORY_BASIC_INFORMATION32 mbi32;
+	MEMORY_BASIC_INFORMATION64 mbi64;
 
-	#if defined(_M_AMD64) || defined(_M_X64)
-		MEMORY_BASIC_INFORMATION64 mbi;
-	#else
-		MEMORY_BASIC_INFORMATION32 mbi;
-	#endif
+	if (bits == 64)
+		res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi64);
+	else if (bits == 32)
+		res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi32);
+	else
+		res = ERROR_INVALID_PARAMETER;
 
-	res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi);
 	if (res != ERROR_SUCCESS) {
 		::SetLastError(res);
 		return S_FALSE;
 	}
 
-	*result = mbi.Protect;
+	*result = (bits == 64)? mbi64.Protect : mbi32.Protect;
 	return S_OK;
 }
 
 STDMETHODIMP CLeaker::mem_type(ULONGLONG ea, ULONGLONG* result)
 {
+	const auto bits = disasm.m_bits;
 	DWORD res;
+	MEMORY_BASIC_INFORMATION32 mbi32;
+	MEMORY_BASIC_INFORMATION64 mbi64;
 
-	#if defined(_M_AMD64) || defined(_M_X64)
-		MEMORY_BASIC_INFORMATION64 mbi;
-	#else
-		MEMORY_BASIC_INFORMATION32 mbi;
-	#endif
+	if (bits == 64)
+		res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi64);
+	else if (bits == 32)
+		res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi32);
+	else
+		res = ERROR_INVALID_PARAMETER;
 
-	res = utils::queryAddress(static_cast<intptr_t>(ea), &mbi);
 	if (res != ERROR_SUCCESS) {
 		::SetLastError(res);
 		return S_FALSE;
 	}
 
-	*result = mbi.Type;
+	*result = (bits == 64)? mbi64.Type : mbi32.Type;
 	return S_OK;
 }
 

@@ -95,8 +95,8 @@ Disassembler::disasm(intptr_t ea, size_t count, std::ostream& os)
 	return count;
 }
 
-int
-Disassembler::bits(int num)
+size_t
+Disassembler::bits(size_t num)
 {
 	auto res = m_bits;
 	switch (num) {
@@ -130,13 +130,15 @@ Dumper::printable(intptr_t ea, size_t count, std::ostream& os)
 void
 Dumper::item(float value, std::ostream& os)
 {
+	static const char* scientific_chars = "-.e-";
 	auto max_precision = std::numeric_limits<float>::digits10 + 1;
-	os << std::scientific << std::setprecision(max_precision) << std::setw(5 + max_precision + sizeof('-.e-')) << std::setfill(' ') << value;
+	os << std::scientific << std::setprecision(max_precision) << std::setw(5 + max_precision + sizeof(scientific_chars)) << std::setfill(' ') << value;
 }
 
 void
 Dumper::item(double value, std::ostream& os)
 {
+	static const char* scientific_chars = "-.e-";
 	auto max_precision = std::numeric_limits<double>::digits10 + 1;
-	os << std::scientific << std::setprecision(max_precision) << std::setw(5 + max_precision + sizeof('-.e-')) << std::setfill(' ') << value;
+	os << std::scientific << std::setprecision(max_precision) << std::setw(5 + max_precision + sizeof(scientific_chars)) << std::setfill(' ') << value;
 }

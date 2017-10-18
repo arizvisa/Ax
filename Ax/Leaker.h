@@ -106,19 +106,19 @@ public:
 
 	STDMETHOD(get_syntax)(BSTR* pVal);
 	STDMETHOD(put_syntax)(BSTR newVal);
-	STDMETHOD(get_bits)(LONG* pVal);
-	STDMETHOD(put_bits)(LONG newVal);
-	STDMETHOD(disassemble)(ULONGLONG ea, LONG n, BSTR* result);
-	STDMETHOD(dump)(ULONGLONG ea, LONG n, BSTR type, BSTR* result);
+	STDMETHOD(get_bits)(ULONG* pVal);
+	STDMETHOD(put_bits)(ULONG newVal);
+	STDMETHOD(disassemble)(ULONGLONG ea, ULONG n, BSTR* result);
+	STDMETHOD(dump)(ULONGLONG ea, ULONG n, BSTR type, BSTR* result);
 
-	STDMETHOD(uint8_t)(ULONGLONG ea, ULONG* result);
-	STDMETHOD(sint8_t)(ULONGLONG ea, LONG* result);
-	STDMETHOD(uint16_t)(ULONGLONG ea, ULONG* result);
-	STDMETHOD(sint16_t)(ULONGLONG ea, LONG* result);
-	STDMETHOD(uint32_t)(ULONGLONG ea, ULONG* result);
-	STDMETHOD(sint32_t)(ULONGLONG ea, LONG* result);
-	STDMETHOD(uint64_t)(ULONGLONG ea, ULONG* result);
-	STDMETHOD(sint64_t)(ULONGLONG ea, LONG* result);
+	STDMETHOD(uint8_t)(ULONGLONG ea, ULONGLONG* result);
+	STDMETHOD(sint8_t)(ULONGLONG ea, LONGLONG* result);
+	STDMETHOD(uint16_t)(ULONGLONG ea, ULONGLONG* result);
+	STDMETHOD(sint16_t)(ULONGLONG ea, LONGLONG* result);
+	STDMETHOD(uint32_t)(ULONGLONG ea, ULONGLONG* result);
+	STDMETHOD(sint32_t)(ULONGLONG ea, LONGLONG* result);
+	STDMETHOD(uint64_t)(ULONGLONG ea, ULONGLONG* result);
+	STDMETHOD(sint64_t)(ULONGLONG ea, LONGLONG* result);
 	STDMETHOD(binary32)(ULONGLONG ea, FLOAT* result);
 	STDMETHOD(binary64)(ULONGLONG ea, DOUBLE* result);
 	STDMETHOD(unicodestring)(ULONGLONG ea, BSTR* result);

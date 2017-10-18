@@ -22,20 +22,20 @@ interface ILeaker : IDispatch{
 	/* disassembler and dumper */
 	[propget, id(2)] HRESULT syntax([out, retval] BSTR* pVal);
 	[propput, id(2)] HRESULT syntax([in] BSTR newVal);
-	[propget, id(3)] HRESULT bits([out, retval] LONG* pVal);
-	[propput, id(3)] HRESULT bits([in] LONG newVal);
-	[id(4)] HRESULT disassemble([in] ULONGLONG ea, [in] LONG n, [out, retval] BSTR* result);
-	[id(5)] HRESULT dump([in] ULONGLONG ea, [in] LONG n, [in] BSTR type, [out, retval] BSTR* result);
+	[propget, id(3)] HRESULT bits([out, retval] ULONG* pVal);
+	[propput, id(3)] HRESULT bits([in] ULONG newVal);
+	[id(4)] HRESULT disassemble([in] ULONGLONG ea, [in] ULONG n, [out, retval] BSTR* result);
+	[id(5)] HRESULT dump([in] ULONGLONG ea, [in] ULONG n, [in] BSTR type, [out, retval] BSTR* result);
 
 	/* integer extraction */
-	[id(6)] HRESULT uint8_t([in] ULONGLONG ea, [out, retval] ULONG* result);
-	[id(7)] HRESULT sint8_t([in] ULONGLONG ea, [out, retval] LONG* result);
-	[id(8)] HRESULT uint16_t([in] ULONGLONG ea, [out, retval] ULONG* result);
-	[id(9)] HRESULT sint16_t([in] ULONGLONG ea, [out, retval] LONG* result);
-	[id(10)] HRESULT uint32_t([in] ULONGLONG ea, [out, retval] ULONG* result);
-	[id(11)] HRESULT sint32_t([in] ULONGLONG ea, [out, retval] LONG* result);
-	[id(12)] HRESULT uint64_t([in] ULONGLONG ea, [out, retval] ULONG* result);
-	[id(13)] HRESULT sint64_t([in] ULONGLONG ea, [out, retval] LONG* result);
+	[id(6)] HRESULT uint8_t([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
+	[id(7)] HRESULT sint8_t([in] ULONGLONG ea, [out, retval] LONGLONG* result);
+	[id(8)] HRESULT uint16_t([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
+	[id(9)] HRESULT sint16_t([in] ULONGLONG ea, [out, retval] LONGLONG* result);
+	[id(10)] HRESULT uint32_t([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
+	[id(11)] HRESULT sint32_t([in] ULONGLONG ea, [out, retval] LONGLONG* result);
+	[id(12)] HRESULT uint64_t([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
+	[id(13)] HRESULT sint64_t([in] ULONGLONG ea, [out, retval] LONGLONG* result);
 	[id(14)] HRESULT binary32([in] ULONGLONG ea, [out, retval] FLOAT* result);
 	[id(15)] HRESULT binary64([in] ULONGLONG ea, [out, retval] DOUBLE* result);
 
