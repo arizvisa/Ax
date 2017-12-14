@@ -55,6 +55,9 @@ interface ILeaker : IDispatch{
 	[id(24)] HRESULT mem_state([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
 	[id(25)] HRESULT mem_protect([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
 	[id(26)] HRESULT mem_type([in] ULONGLONG ea, [out, retval] ULONGLONG* result);
+
+	/* writing integer to an address */
+	[id(27)] HRESULT store([in] ULONGLONG ea, [in] ULONG n, [in] ULONGLONG value, [out, retval] ULONGLONG* result);
 };
 
 [

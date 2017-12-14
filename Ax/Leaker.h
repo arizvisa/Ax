@@ -120,6 +120,8 @@ public:
 	STDMETHOD(mem_state)(ULONGLONG ea, ULONGLONG* result);
 	STDMETHOD(mem_protect)(ULONGLONG ea, ULONGLONG* result);
 	STDMETHOD(mem_type)(ULONGLONG ea, ULONGLONG* result);
-};
+
+	STDMETHOD(store)(ULONGLONG ea, ULONG n, ULONGLONG value, ULONGLONG* result);
+	};
 
 OBJECT_ENTRY_AUTO(__uuidof(Leaker), CLeaker)

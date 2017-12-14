@@ -1,0 +1,23 @@
+{
+  "name": "Ax.wintypes",
+  "version": "0.0.1",
+  "description": "stupid typesystem for navigating an address-space in Windows",
+  "main": "js/index.js",
+  "repository": "git+https://github.com/arizvisa/Ax.git",
+  "author": "Ali Rizvi-Santiago <arizvisa@gmail.com>",
+  "license": "BSD-3-Clause-Clear",
+  "scripts": {
+    "build": "webpack",
+    "start": "webpack-dev-server"
+  },
+  "dependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-runtime": "^6.26.0",
+    "html-webpack-plugin": "^2.30.1",
+    "webpack": "^3.10.0",
+    "webpack-dev-server": "^2.9.7"
+  }
+}

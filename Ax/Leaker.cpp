@@ -783,3 +783,58 @@ STDMETHODIMP CLeaker::mem_type(ULONGLONG ea, ULONGLONG* result)
 	TODO:
 		Enumerate thread IDs. Figure out how to return an array or an object from ActiveX.
 */
+
+STDMETHODIMP CLeaker::store(ULONGLONG ea, ULONG n, ULONGLONG value, ULONGLONG* result)
+{
+	intptr_t p = static_cast<intptr_t>(ea);
+
+	union {
+		std::uint8_t res1; std::uint16_t res2;
+		std::uint32_t res4; std::uint64_t res8;
+	};
+	union {
+		std::uint8_t* p1; std::uint16_t* p2;
+		std::uint32_t* p4; std::uint64_t* p8;
+	};
+
+	try {
+		switch (n) {
+		case 1:
+			p1 = reinterpret_cast<std::uint8_t*>(p);
+			res1 = *p1;
+			*p1 = value & 0xff;
+			*result = static_cast<ULONGLONG>(res1);
+			break;
+
+		case 2:
+			p2 = reinterpret_cast<std::uint16_t*>(p);
+			res2 = *p2;
+			*p2 = value & 0xffff;
+			*result = static_cast<ULONGLONG>(res2);
+			break;
+
+		case 4:
+			p4 = reinterpret_cast<std::uint32_t*>(p);
+			res4 = *p4;
+			*p4 = value & 0xffffffff;
+			*result = static_cast<ULONGLONG>(res4);
+			break;
+
+		case 8:
+			p8 = reinterpret_cast<std::uint64_t*>(p);
+			res8 = *p8;
+			*p8 = value & 0xffffffffffffffff;
+			*result = static_cast<ULONGLONG>(res8);
+			break;
+
+		default:
+			utils::setLastError(STATUS_INVALID_PARAMETER);
+			return S_FALSE;
+		}
+	}
+	catch (...) {
+		utils::setLastError(STATUS_ACCESS_VIOLATION);
+		return S_FALSE;
+	}
+	return S_OK;
+}
