@@ -1,4 +1,8 @@
 import {Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct} from './jtypes';
+import {toHex, ofHex} from './ax';
+
+import * as L from 'loglevel';
+const Log = L.getLogger('pecoff');
 
 class e_reserved extends Jarray {
     get Type() { return Juint16; }
@@ -47,7 +51,7 @@ class IMAGE_FILE_HEADER extends Jstruct {
             ['NumberOfSymbols', Juint32],
             ['SizeOfOptionalHeader', Juint16],
             ['Characteristics', Juint16],
-        ]
+        ];
     }
 }
 
@@ -85,20 +89,22 @@ class IMAGE_OPTIONAL_HEADER extends Jstruct {
             ['SizeOfHeapCommit', Juint32],            
             ['LoaderFlags', Juint32],            
             ['NumberOfRvaAndSizes', Juint32],            
-        ]
+        ];
     }
 }
 
 export class IMAGE_DATA_DIRECTORY extends Jstruct {
     get classname() { return "IMAGE_DATA_DIRECTORY"; }
     get Type() {
-        throw("not implemented");
+        let ea = this.getAddress();
+        Log.warn(`Ignoring untyped pointer for field Address in IMAGE_DATA_DIRECTORY(${toHex(ea)}).`);
+        return Juint32;
     }
     get Fields() {
         return [
             ['Address', this.Type],
             ['Size', Juint32],
-        ]
+        ];
     }
 }
 

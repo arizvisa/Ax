@@ -1,22 +1,33 @@
-export var Ax = new ActiveXObject("Ax.Leaker.1");
+import { Ax, toHex, ofHex } from './ax';
+import * as errors from 'errors';
+import './errors';
 
-// utility functions
-function toHex(s) {
-    // TODO: use math.log to figure out which power of 2 this number
-    //       fits within, and then pad it with 0s.
-    return s.toString(16);
-}
-function ofHex(s) {
-    return parseInt(s, 16);
-}
-var oX = ofHex;
-var tX = toHex;
+/* Error message types for jtypes. */
+errors.create({
+    name: 'UndefinedFieldError',
+    defaultExplanation: 'This subclass is missing a required field.',
+    parent: errors.NotImplementedError,
+});
+errors.create({
+    name: 'NativeError',
+    defaultExplanation: 'An internal error has occurred.',
+});
+errors.create({
+    name: 'InvalidSizeError',
+    defaultExplanation: 'An invalid size has been specified.',
+    parent: errors.NativeError,
+});
+errors.create({
+    name: 'InvalidAddressError',
+    defaultExplanation: 'An invalid address has been specified.',
+    parent: errors.NativeError,
+});
 
 // class definitions
 export class Jatomic {
     get classname() { return "Jatomic"; }
     get Size() {
-        throw('not implemented');
+        throw new errors.PropertyNotImplementedError('Size');
     }
     constructor(address) {
         this.address = address;
@@ -28,7 +39,7 @@ export class Jatomic {
         return this.Size;
     }
     getValue() {
-        throw('not implemented');
+        throw new errors.MethodNotImplementedError('getValue');
     }
     dump() {
         let ea = this.getAddress();
@@ -54,7 +65,8 @@ export class Jatomicu extends Jatomic {
     get classname() { return "Jatomicu"; }
     getValue() {
         let ofs = this.getAddress();
-        switch (this.getSize()) {
+        let cb = this.getSize();
+        switch (cb) {
             case 1:
                 return Ax.uint8_t(ofs);
             case 2:
@@ -64,7 +76,7 @@ export class Jatomicu extends Jatomic {
             case 8:
                 return Ax.uint64_t(ofs);
         }
-        throw('not implemented');
+        throw new errors.InvalidSizeError(`Invalid size ${cb} for an unsigned integer was requested.`);
     }
     summary() {
         let value = this.getValue();
@@ -88,7 +100,7 @@ export class Jatomics extends Jatomic {
             case 8:
                 return Ax.sint64_t(ofs);
         }
-        throw('not implemented');
+        throw new errors.InvalidSizeError(`Invalid size ${cb} for a signed integer was requested.`);
     }
     summary() {
         let value = this.getValue();
@@ -104,7 +116,7 @@ export class Jpointer extends Jatomicu {
         return 4;
     }
     get Type() {
-        throw('not implemented');
+        throw new errors.UndefinedFieldError('Type');
     }
     get d() {
         return this.dereference();
@@ -172,10 +184,10 @@ export class Jcontainer {
 export class Jarray extends Jcontainer {
     get classname() { return "Jarray"; }
     get Type() {
-        throw('not implemented');
+        throw new errors.UndefinedFieldError('Type');
     }
     get Length() {
-        throw('not implemented');
+        throw new errors.UndefinedFieldError('Length');
     }
     constructor(address) {
         super(address);
@@ -184,11 +196,12 @@ export class Jarray extends Jcontainer {
         let indices = this.indices;
 
         let ea = this.getAddress();
-        while (count -= 1) {
+        while (count) {
             let res = new object(ea);
             indices[this.value.length] = this.value.length;
             this.value.push(res);
             ea += res.getSize();
+            count -= 1;
         }
     }
 }
@@ -196,7 +209,7 @@ export class Jarray extends Jcontainer {
 export class Jstruct extends Jcontainer {
     get classname() { return "Jstruct"; }
     get Fields() {
-        throw('not implemented');
+        throw new errors.UndefinedFieldError('Fields');
     }
 
     constructor(address) {
@@ -274,14 +287,14 @@ export class ANSI_STRING extends Jstruct {
             ['Length', Juint16],
             ['MaximumLength', Juint16],
             ['Buffer', Juint32],
-        ]
+        ];
     }
     summary() {
         let length = this.field('Length').getValue();
         let maxlength = this.field('MaximumLength').getValue();
         let ptr = toHex(this.field('Buffer').getValue());
         let string = Ax.ansistring(this.getAddress());
-        return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`
+        return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
     }
     repr() {
         let ea = toHex(this.getAddress());
@@ -297,14 +310,14 @@ export class UNICODE_STRING extends Jstruct {
             ['Length', Juint16],
             ['MaximumLength', Juint16],
             ['Buffer', Juint32],
-        ]
+        ];
     }
     summary() {
         let length = this.field('Length').getValue();
         let maxlength = this.field('MaximumLength').getValue();
         let ptr = toHex(this.field('Buffer').getValue());
         let string = Ax.unicodestring(this.getAddress());
-        return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`
+        return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
     }
     repr() {
         let ea = toHex(this.getAddress());

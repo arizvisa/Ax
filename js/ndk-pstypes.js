@@ -1,4 +1,5 @@
 import {Jpointer, Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct, UNICODE_STRING} from './jtypes';
+import * as errors from 'errors';
 
 // pstypes.js
 class LDR_DATA_TABLE_ENTRY extends Jstruct {
@@ -13,21 +14,21 @@ class LDR_DATA_TABLE_ENTRY extends Jstruct {
             ['SizeOfImage', Juint32],
             ['FullDllName', UNICODE_STRING],
             ['BaseDllName', UNICODE_STRING],
-        ]
+        ];
     }
 }
 
 class LIST_ENTRY extends Jstruct {
     get classname() { return "LIST_ENTRY"; }
     get Type() {
-        throw("not implemented");
+        throw new errors.UndefinedFieldError('Type');
     }
     get Fields() {
         let pointer = this.Type;
         return [
             ['Flink', pointer],
             ['Blink', pointer],
-        ]
+        ];
     }
 }
 

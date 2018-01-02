@@ -1,12 +1,5 @@
 const path = require('path')
-
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const HtmlWebpackPluginConfig = new HtmlWebpackPlugin({
-  template: './js/index.html',
-  filename: 'index.html',
-  inject: 'head',
-  showErrors: true,
-});
 
 module.exports = {
   devServer: {
@@ -16,29 +9,65 @@ module.exports = {
 
   entry: [
     'babel-polyfill',
+    'error-polyfill',
     './js/index.js',
   ],
 
   output: {
-    filename: 'js/webpack.js'
+    filename: 'webpack.js'
   },
 
   module: {
-    loaders: [
+    rules: [
       {
-        loader: 'babel-loader',
+        test: /\.json$/,
+        loader: 'json-loader',
+      },
+      {
+        test: /\.js$/,
+        enforce: 'pre',
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'jshint-loader',
+            options: {
+              emitErrors: true,
+              failOnHint: false,
+              esversion: 6,
+            },
+          },
+        ],
+      },
+      {
+        test: /.js$/,
+        enforce: 'post',
         include: [
           path.resolve(__dirname, 'js'),
         ],
-        test: /.js$/,
-        query: {
-          presets: ['es2015'],
-        },
-      }
-    ]
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: ['env'],
+              plugins: [
+                ["babel-plugin-transform-builtin-extend", {
+                  globals: ["Error", "Array"],
+                  approximate: true,
+                }],
+              ],
+            },
+          },
+        ]
+      },
+    ],
   },
 
   plugins: [
-    HtmlWebpackPluginConfig,
+    new HtmlWebpackPlugin({
+      template: './js/index.thtml',
+      filename: './index.html',
+      inject: 'head',
+      showErrors: true,
+    }),
   ],
 }
