@@ -8,12 +8,9 @@ import * as Lazy from 'lazy.js';
 
 /*
  * Scan across a memory region looking for MZ headers
- * Example use with Lazy:
  * Return an array of all addresses in [0x1000, 0x7fffffff] that start with MZ
- *
-    Lazy.generate(ScanForExecutables(0x1000, 0x7fffffff), 500)
-        .filter( function(x) { if (!isNaN(x)) { return x; } }) // Need this check since the generator returns undefined when finished
-        .toArray();
+ 
+    let exes = ScanForExecutables(0x1000, 0xfffffff);
 
  * Assumption: MZ headers are page aligned, hence we search in increments of 0x1000
  */
