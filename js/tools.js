@@ -138,7 +138,7 @@ export function ReadDwords(ea, n) {
     let qwords = ReadQwords(0x1230000, 10);
 
     console.log(Lazy.default(qwords).map(toHex).toArray());
-    TODO
+    300905a4d,ffff00000004,b8,40,0,0,0,f000000000
  */
 export function ReadQwords(ea, n) {
     let qwords = Lazy.generate(_ReadBytes(ea, 8))
@@ -152,7 +152,7 @@ export function ReadQwords(ea, n) {
  * Infinitely read bytes from a given address (to be used with Lazy)
  * Example: Read 10 dwords from 0xdeadbeef
  
-    let dwords = Lazy.generate(_ReadBytes(0xdeadbeef, 10))
+    let dwords = Lazy.generate(_ReadBytes(0xdeadbeef, 4))
                      .take(n)
                      .toArray();
 
@@ -189,3 +189,75 @@ function _ReadBytes(ea, bytes=1) {
     };
 }
 
+/* 
+ * Internal function used for writing arbitrary data to a memory space
+ * Arguments:
+ *  ea: address to start writing
+ *  new_bytes: array of ints to write
+ *  bytes: number of bytes that each number will take up in memory
+ * Example: Write 1 to 0xdead0000 and 2 to 0xdead0001
+ *   let new_bytes = [1, 2];
+ *   let ea = 0xdead0000;
+ *  _WriteData(ea, new_bytes, 1);
+ */
+function _WriteData(ea, new_bytes, bytes=1) {
+    Lazy.range(ea, ea + (new_bytes.length)*bytes, bytes)
+        .zip(new_bytes)
+        .each( function(z) {
+            let [addr, b] = [z[0], z[1]];
+            console.log(`Writing ${bytes} bytes: Addr: ${addr} (0x${toHex(addr)}), New Bytes: ${b} (0x${toHex(b)})`);
+            Ax.store(addr, bytes, b);
+        });
+}
+
+/* 
+ * Write a sequence of bytes to the address ea
+ *
+ * Example: Write bytes 0x12, 0x34, 0x56 to address 0x10770
+ * 
+ *   let bytes = [0x12, 0x34, 0x56];
+ *   let ea = 0x10770;
+ *   WriteBytes(ea, bytes);
+*/
+export function WriteBytes(ea, new_bytes) {
+    _WriteData(ea, new_bytes, 1);
+}
+
+/* 
+ * Write a sequence of words to the address ea
+ *
+ * Example: Write words 0x0012, 0x0034, 0x0056 to address 0x10770
+ * 
+ *   let words = [0x12, 0x34, 0x56];
+ *   let ea = 0x10770;
+ *   WriteWords(ea, words);
+*/
+export function WriteWords(ea, new_bytes) {
+    _WriteData(ea, new_bytes, 2);
+}
+
+/* 
+ * Write a sequence of dwords to the address ea
+ *
+ * Example: Write dwords 0xdeadbeef, 0xcafebabe, 0x41414141 to address 0x10770
+ * 
+ *   let dwords = [0xdeadbeef, 0xcafebabe, 0x41414141];
+ *   let ea = 0x10770;
+ *   WriteDwords(ea, dwords);
+*/
+export function WriteDwords(ea, new_bytes) {
+    _WriteData(ea, new_bytes, 4);
+}
+
+/* 
+ * Write a sequence of qwords to the address ea
+ *
+ * Example: Write qwords 0xdeadbeefcafebabe, 0x4141414142424242 to address 0x10770
+ * 
+ *   let qwords = [0xdeadbeefcafebabe, 0x4141414142424242];
+ *   let ea = 0x10770;
+ *   WriteQwords(ea, qwords);
+*/
+export function WriteQwords(ea, new_bytes) {
+    _WriteData(ea, new_bytes, 8);
+}
