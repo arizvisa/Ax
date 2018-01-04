@@ -179,7 +179,6 @@ function _ReadBytes(ea, bytes=1) {
                 break;
             case 8:
                 res = Ax.uint64_t(address);
-                if (res == Ax.uint32_t(address)) { throw "uint64_t is returning a ULONG instead of ULONGLONG.. Recompile Ax.dll"; }
                 address = address + 8;
                 break;
             default:
