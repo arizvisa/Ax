@@ -435,7 +435,7 @@ STDMETHODIMP CLeaker::uint8_t(ULONGLONG ea, ULONGLONG* result)
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
 		auto res = utils::ubyte1(p);
-		*result = static_cast<ULONG>(res);
+		*result = static_cast<ULONGLONG>(res);
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -450,7 +450,7 @@ STDMETHODIMP CLeaker::sint8_t(ULONGLONG ea, LONGLONG* result)
 
 	try {
 		auto res = utils::sbyte1(p);
-		*result = static_cast<LONG>(res);
+		*result = static_cast<LONGLONG>(res);
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -464,7 +464,7 @@ STDMETHODIMP CLeaker::uint16_t(ULONGLONG ea, ULONGLONG* result)
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
 		auto res = utils::uint2(p);
-		*result = static_cast<ULONG>(res);
+		*result = static_cast<ULONGLONG>(res);
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -478,7 +478,7 @@ STDMETHODIMP CLeaker::sint16_t(ULONGLONG ea, LONGLONG* result)
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
 		auto res = utils::sint2(p);
-		*result = static_cast<LONG>(res);
+		*result = static_cast<LONGLONG>(res);
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -492,7 +492,7 @@ STDMETHODIMP CLeaker::uint32_t(ULONGLONG ea, ULONGLONG* result)
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
 		auto res = utils::uint4(p);
-		*result = static_cast<ULONG>(res);
+		*result = static_cast<ULONGLONG>(res);
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -506,7 +506,7 @@ STDMETHODIMP CLeaker::sint32_t(ULONGLONG ea, LONGLONG* result)
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
 		auto res = utils::sint4(p);
-		*result = static_cast<LONG>(res);
+		*result = static_cast<LONGLONG>(res);
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -520,7 +520,7 @@ STDMETHODIMP CLeaker::uint64_t(ULONGLONG ea, ULONGLONG* result)
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
 		auto res = utils::uint8(p);
-		*result = static_cast<ULONG>(res);
+		*result = static_cast<ULONGLONG>(res);
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -534,7 +534,7 @@ STDMETHODIMP CLeaker::sint64_t(ULONGLONG ea, LONGLONG* result)
 	intptr_t p = static_cast<intptr_t>(ea);
 	try {
 		auto res = utils::sint8(p);
-		*result = static_cast<LONG>(res);
+		*result = static_cast<LONGLONG>(res);
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
