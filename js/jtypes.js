@@ -1,6 +1,9 @@
 import { Ax, toHex, ofHex } from './ax';
+
 import * as errors from 'errors';
 import './errors';
+
+import * as Lazy from 'lazy.js';
 
 /* Error message types for jtypes. */
 errors.create({
@@ -20,6 +23,11 @@ errors.create({
 errors.create({
     name: 'InvalidAddressError',
     defaultExplanation: 'An invalid address has been specified.',
+    parent: errors.NativeError,
+});
+errors.create({
+    name: 'UninitializedError',
+    defaultExplanation: 'This instance is not currently initialized.',
     parent: errors.NativeError,
 });
 
@@ -243,6 +251,118 @@ export class Jstruct extends Jcontainer {
             ea += this.value[i].getSize();
         }
         return result.join("\n");
+    }
+}
+
+export class Jtarray extends Jcontainer {
+    get classname() { return "Jtarray"; }
+    get Type() {
+        throw new errors.UndefinedFieldError('Type');
+    }
+    get Length() {
+        return this.value.length;
+    }
+    isTerminator(value) {
+        throw new errors.MethodNotImplementedError('IsTerminator');
+    }
+    constructor(address) {
+        super(address);
+        let object = this.Type;
+        let indices = this.indices;
+        let ea = this.getAddress();
+
+        let res;
+        do {
+            res = new object(ea);
+            indices[this.value.length] = this.value.length;
+            this.value.push(res);
+            ea += res.getSize();
+        } while (!this.isTerminator(res));
+    }
+}
+
+function ofCharCode(n) {
+    switch (n) {
+        case 0:
+            return "\\0";
+        case 1:
+            return "\\1";
+        case 2:
+            return "\\2";
+        case 3:
+            return "\\3";
+        case 4:
+            return "\\4";
+        case 5:
+            return "\\5";
+        case 6:
+            return "\\6";
+        case 7:
+            return "\\a";
+        case 8:
+            return "\\b";
+        case 9:
+            return "\\t";
+        case 10:
+            return "\\n";
+        case 11:
+            return "\\v";
+        case 12:
+            return "\\f";
+        case 13:
+            return "\\r";
+        default:
+            return (n & 0x80 || ((n&31) == n))? `\\x${n.toString(16)}` : String.fromCharCode(n);
+    }
+}
+
+export class Jstring extends Jarray {
+    get classname() { return "Jstring"; }
+    get Type() { return Juint8; }
+    get Length() {
+        throw new errors.UndefinedFieldError('Length');
+    }
+    getString() {
+        return Lazy.default(this.value)
+                   .map(n => n.getValue())
+                   .map(String.fromCharCode)
+                   .join("");
+    }
+    summary() {
+        return Lazy.default(this.value)
+                   .map(n => n.getValue())
+                   .map(ofCharCode)
+                   .join("");
+    }
+    repr() {
+        let ea = toHex(this.getAddress());
+        let value = this.summary();
+        return `[${ea}] <${this.classname}> : "${value}"`;
+    }
+}
+
+export class Jszstring extends Jtarray {
+    get classname() { return "Jszstring"; }
+    get Type() { return Juint8; }
+    isTerminator(value) {
+        return value.getValue() == 0;
+    }
+    getString() {
+        return Lazy.default(this.value)
+                   .map(n => n.getValue())
+                   .map(String.fromCharCode)
+                   .join("");
+    }
+    summary() {
+        return Lazy.default(this.value)
+                   .map(n => n.getValue())
+                   .map(ofCharCode)
+                   .join("");
+    }
+    repr() {
+        let ea = toHex(this.getAddress());
+        let value = this.summary();
+        return `[${ea}] <${this.classname}> : "${value}"`;
     }
 }
 
