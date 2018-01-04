@@ -40,6 +40,26 @@ export class Jatomic {
     constructor(address) {
         this.address = address;
     }
+    bytes() {
+        let [integral, cb] = [this.getValue(), this.getSize()];
+        let res = [];
+        while (cb--) {
+            res.push(integral % 256);
+            integral = Math.trunc(integral / 256);
+        }
+        return res;
+    }
+    serialize() {
+        let [integral, cb] = [this.getValue(), this.getSize()];
+        let res = [];
+        while (cb--) {
+            let ch = integral % 256;
+            res.push(String.fromCharCode(ch));
+            integral = integral / 256;
+        }
+        return Lazy.default(res)
+                   .join("");
+    }
     getAddress() {
         return this.address;
     }
@@ -152,6 +172,17 @@ export class Jcontainer {
         this.address = address;
         this.value = [];
         this.indices = {};
+    }
+    bytes() {
+        return Lazy.default(this.value)
+                   .map(n => n.bytes())
+                   .flatten()
+                   .toArray();
+    }
+    serialize() {
+        return Lazy.default(this.value)
+                   .map(n => n.serialize())
+                   .join("");
     }
     getAddress() {
         return this.address;
