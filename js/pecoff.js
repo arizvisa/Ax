@@ -1,4 +1,4 @@
-import {Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct} from './jtypes';
+import {Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct, Jtarray} from './jtypes';
 import {toHex, ofHex} from './ax';
 
 import * as L from 'loglevel';
@@ -169,5 +169,13 @@ export class IMAGE_IMPORT_DIRECTORY_ENTRY extends Jstruct {
             ['Name', Juint32],
             ['IAT', Juint32],
         ];
+    }
+}
+
+export class IMAGE_IMPORT_DIRECTORY extends Jtarray {
+    get classname() { return 'IMAGE_IMPORT_DIRECTORY'; }
+    get Type() { return IMAGE_IMPORT_DIRECTORY_ENTRY; }
+    isTerminator(value) {
+        return value.field('IAT').getValue() == 0;
     }
 }
