@@ -78,3 +78,114 @@ export function ScanForBytes(bytes, start, end) {
                     })
                .toArray();
 }
+
+/* 
+ * Read a number of bytes from a given address
+ * Example: Read 10 bytes from the 0x1230000
+ *
+    let bytes = ReadBytes(0x1230000, 10);
+
+    console.log(Lazy.default(bytes).map(toHex).toArray());
+    4d,5a,90,0,3,0,0,0
+ */
+
+export function ReadBytes(ea, n) {
+    let bytes = Lazy.generate(_ReadBytes(ea, 1))
+                    .take(n)
+                    .toArray();
+
+    return bytes;
+}
+
+/* 
+ * Read a number of words from a given address
+ * Example: Read 10 words from the 0x1230000
+ *
+    let words = ReadWords(0x1230000, 10);
+
+    console.log(Lazy.default(words).map(toHex).toArray());
+    5a4d,90,3,0,4,0,ffff,0
+ */
+export function ReadWords(ea, n) {
+    let words = Lazy.generate(_ReadBytes(ea, 2))
+                    .take(n)
+                    .toArray();
+
+    return words;
+}
+
+/* 
+ * Read a number of dwords from a given address
+ * Example: Read 10 dwords from the 0x1230000
+ *
+    let dwords = ReadDwords(0x1230000, 10);
+
+    console.log(Lazy.default(dwords).map(toHex).toArray());
+    905a4d,3,4,ffff,b8,0,40,0
+ */
+export function ReadDwords(ea, n) {
+    let dwords = Lazy.generate(_ReadBytes(ea, 4))
+                     .take(n)
+                     .toArray();
+
+    return dwords;
+}
+
+/* 
+ * Read a number of qwords from a given address
+ * Example: Read 10 qwords from the 0x1230000
+ *
+    let qwords = ReadQwords(0x1230000, 10);
+
+    console.log(Lazy.default(qwords).map(toHex).toArray());
+    TODO
+ */
+export function ReadQwords(ea, n) {
+    let qwords = Lazy.generate(_ReadBytes(ea, 8))
+                     .take(n)
+                     .toArray();
+
+    return qwords;
+}
+
+/*
+ * Infinitely read bytes from a given address (to be used with Lazy)
+ * Example: Read 10 dwords from 0xdeadbeef
+ 
+    let dwords = Lazy.generate(_ReadBytes(0xdeadbeef, 10))
+                     .take(n)
+                     .toArray();
+
+    return dwords;
+ *
+ */
+function _ReadBytes(ea, bytes=1) {
+    let address = ea;
+
+    return function reads() {
+        let res;
+        switch(bytes) {
+            case 1:
+                res = Ax.uint8_t(address);
+                address = address + 1;
+                break;
+            case 2:
+                res = Ax.uint16_t(address);
+                address = address + 2;
+                break;
+            case 4:
+                res = Ax.uint32_t(address);
+                address = address + 4;
+                break;
+            case 8:
+                res = Ax.uint64_t(address);
+                address = address + 8;
+                break;
+            default:
+                throw "[_ReadBytes] Received unknown byte length.";
+        }
+
+        return res;
+    };
+}
+
