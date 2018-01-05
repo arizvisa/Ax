@@ -100,6 +100,11 @@ function __load__(address, size) {
     return undefined;
 }
 
+/* calls __store__(...) until it returns a size that's less than or equal to `c` while adjusting `n`. */
+const fstore = (ea, c, n) => __store__(ea, c, n) || ((c-1 > 0)? fstore(ea, c-1, Math.trunc(n/256)) : 0);
+/* calls __load__(...) until it returns a size that's less than or equal to `c`. */
+const fload = (ea, c) => __load__(ea, c) || ((c-1 > 0)? fload(ea, c-1) : [0, 0]);
+
 /*
  * Store an array of bytes to `address`.
  * Return the number of bytes that were written.
@@ -108,9 +113,6 @@ export function store(address, bytes) {
     // Figure out the maximum number of bytes we can write accurately
     const INTEGER_BITS = Math.pow(2, Math.trunc(Math.log(MAX_SAFE_INTEGER_BITS) / Math.log(2)));
     const INTEGER_BYTES = INTEGER_BITS / 8;
-
-    // calls __store__(...) until it returns a size that's less than or equal to `c` while adjusting `n`.
-    let fstore = (ea, c, n) => __store__(ea, c, n) || ((c-1 > 0)? fstore(ea, c-1, Math.trunc(n/256)) : 0);
 
     // loop through slicing data out of the `state` array using `fstore` to write as much as possible to memory.
     let [ea, res, state] = [address, 0, bytes.slice()];
@@ -179,7 +181,7 @@ function storei(address, size, integral) {
     // Internal integer writing function.
     function _storeui(address, size, integral) {
         // Try and store `integral` to address so we can figure out what was missed.
-        let res = __store__(address, size, integral);
+        let res = fstore(address, size, integral);
         if (!res)
             return res;
 
@@ -199,10 +201,12 @@ function storei(address, size, integral) {
  * integers containing their values.
  */
 export function load(address, size) {
+    // calls __load__(...) until it returns a size that's less than or equal to `c`;
+
     let res = [];
     let [ea, total] = [address, 0];
     while (total < size) {
-        let [cb, n] = __load__(ea, size);
+        let [cb, n] = fload(ea, size);
         if (!cb) break;
         for (let i = 0; i < cb; i++) {
             res.push(n % 256);
@@ -249,9 +253,6 @@ export function loadsi(address, size) {
  * Internal implementation of loadui and loadsi.
  */
 function loadi(address, size) {
-
-    // calls __load__(...) until it returns a size that's less than or equal to `c`;
-    let fload = (ea, c) => __load__(ea, c) || ((c-1 > 0)? fload(ea, c-1) : [0, 0]);
 
     // consume as many integers as we need from `address`.
     let [ea, components, total] = [address, [], 0];
