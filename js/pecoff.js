@@ -1,4 +1,4 @@
-import {Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct, Jtarray} from './jtypes';
+import {Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct, Jtarray, Jstring} from './jtypes';
 import {toHex, ofHex} from './ax';
 
 import * as L from 'loglevel';
@@ -108,11 +108,15 @@ export class IMAGE_DATA_DIRECTORY extends Jstruct {
     }
 }
 
+class IMAGE_SECTION_HEADER_Name extends Jstring {
+    get Length() { return 8; }
+}
+
 export class IMAGE_SECTION_HEADER extends Jstruct {
     get classname() { return "IMAGE_SECTION_HEADER"; }
     get Fields() {
         return [
-            ['Name', Juint64],
+            ['Name', IMAGE_SECTION_HEADER_Name],
             ['VirtualSize', Juint32],
             ['VirtualAddress', Juint32],
             ['SizeOfRawData', Juint32],
@@ -134,9 +138,29 @@ export class IMAGE_NT_HEADER extends Jstruct {
             ['padding(Signature)', Juint16],
             ['FileHeader', IMAGE_FILE_HEADER],
             ['OptionalHeader', IMAGE_OPTIONAL_HEADER],
-//            ['DataDirectory', DataDirectory],
-//            ['Sections', SectionTable],
+            ['DataDirectory', DataDirectory],
+            ['Sections', SectionTable],
         ];
+    }
+}
+
+export class DataDirectory extends Jarray {
+    get classname() { return 'DataDirectory{' + this.Length + '}'; }
+    get Type() { return IMAGE_DATA_DIRECTORY; }
+    get Length() {
+        let pe_hdr = this.parent;
+        let res = pe_hdr.field('OptionalHeader').field('NumberOfRvaAndSizes');
+        return res.getValue();
+    }
+}
+
+export class SectionTable extends Jarray {
+    get classname() { return 'SectionTable{' + this.Length + '}'; }
+    get Type() { return IMAGE_SECTION_HEADER; }
+    get Length() {
+        let pe_hdr = this.parent;
+        let res = pe_hdr.field('FileHeader').field('NumberOfSections');
+        return res.getValue();
     }
 }
 
