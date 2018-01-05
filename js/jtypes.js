@@ -1,4 +1,4 @@
-import { Ax, toHex, ofHex } from './ax';
+import * as Ax from './ax';
 
 import * as errors from 'errors';
 import './errors';
@@ -10,10 +10,6 @@ errors.create({
     name: 'UndefinedFieldError',
     defaultExplanation: 'This subclass is missing a required field.',
     parent: errors.NotImplementedError,
-});
-errors.create({
-    name: 'NativeError',
-    defaultExplanation: 'An internal error has occurred.',
 });
 errors.create({
     name: 'InvalidSizeError',
@@ -31,287 +27,7 @@ errors.create({
     parent: errors.NativeError,
 });
 
-// class definitions
-export class Jatomic {
-    get classname() { return "Jatomic"; }
-    get Size() {
-        throw new errors.PropertyNotImplementedError('Size');
-    }
-    constructor(address) {
-        this.address = address;
-    }
-    bytes() {
-        let [integral, cb] = [this.getValue(), this.getSize()];
-        let res = [];
-        while (cb--) {
-            res.push(integral % 256);
-            integral = Math.trunc(integral / 256);
-        }
-        return res;
-    }
-    serialize() {
-        let [integral, cb] = [this.getValue(), this.getSize()];
-        let res = [];
-        while (cb--) {
-            let ch = integral % 256;
-            res.push(String.fromCharCode(ch));
-            integral = integral / 256;
-        }
-        return Lazy.default(res)
-                   .join("");
-    }
-    getAddress() {
-        return this.address;
-    }
-    getSize() {
-        return this.Size;
-    }
-    getValue() {
-        throw new errors.MethodNotImplementedError('getValue');
-    }
-    dump() {
-        let ea = this.getAddress();
-        let size = this.getSize();
-        let result = [];
-        while (size--) {
-            result.push(Ax.uint8_t(ea));
-            ea++;
-        }
-        return result.map(toHex).join(" ");
-    }
-    summary() {
-        return this.getValue().toString();
-    }
-    repr() {
-        let ea = toHex(this.getAddress());
-        let value = this.summary();
-        return `[${ea}] <${this.classname}> : ${value}`;
-    }
-}
-
-export class Jatomicu extends Jatomic {
-    get classname() { return "Jatomicu"; }
-    getValue() {
-        let ofs = this.getAddress();
-        let cb = this.getSize();
-        switch (cb) {
-            case 1:
-                return Ax.uint8_t(ofs);
-            case 2:
-                return Ax.uint16_t(ofs);
-            case 4:
-                return Ax.uint32_t(ofs);
-            case 8:
-                return Ax.uint64_t(ofs);
-        }
-        throw new errors.InvalidSizeError(`Invalid size ${cb} for an unsigned integer was requested.`);
-    }
-    summary() {
-        let value = this.getValue();
-        let value_x = toHex(value);
-        let value_s = value.toString();
-        return `${value_x} (${value_s})`;
-    }
-}
-
-export class Jatomics extends Jatomic {
-    get classname() { return "Jatomics"; }
-    getValue() {
-        let ofs = this.getAddress();
-        switch (this.getSize()) {
-            case 1:
-                return Ax.sint8_t(ofs);
-            case 2:
-                return Ax.sint16_t(ofs);
-            case 4:
-                return Ax.sint32_t(ofs);
-            case 8:
-                return Ax.sint64_t(ofs);
-        }
-        throw new errors.InvalidSizeError(`Invalid size ${cb} for a signed integer was requested.`);
-    }
-    summary() {
-        let value = this.getValue();
-        let value_x = toHex(value);
-        let value_s = value.toString();
-        return `${value_x} (${value_s})`;
-    }
-}
-
-export class Jpointer extends Jatomicu {
-    get classname() { return "Jpointer"; }
-    get Size() {
-        return 4;
-    }
-    get Type() {
-        throw new errors.UndefinedFieldError('Type');
-    }
-    get d() {
-        return this.dereference();
-    }
-    calculate(ea) {
-        return ea;
-    }
-    dereference() {
-        let t = this.Type;
-        let ea = this.calculate(this.getValue());
-        return new t(ea);
-    }
-    summary() {
-        let value = this.getValue();
-        let value_x = toHex(value);
-        let type = this.Type;
-        let type_s = new type().classname;
-        return `${value_x} -> ${type_s}`;
-    }
-}
-
-export class Jcontainer {
-    get classname() { return "Jcontainer"; }
-    constructor(address) {
-        this.address = address;
-        this.value = [];
-        this.indices = {};
-    }
-    bytes() {
-        return Lazy.default(this.value)
-                   .map(n => n.bytes())
-                   .flatten()
-                   .toArray();
-    }
-    serialize() {
-        return Lazy.default(this.value)
-                   .map(n => n.serialize())
-                   .join("");
-    }
-    getAddress() {
-        return this.address;
-    }
-    getLength() {
-        return this.value.length;
-    }
-    getSize() {
-        return this.value.reduce((total, instance) => total + instance.getSize(), 0);
-    }
-    getValue() {
-        return this.value;
-    }
-    field(name) {
-        let index = this.indices[name];
-        return this.value[index];
-    }
-    dump() {
-        let ea = this.getAddress();
-        let size = this.getSize();
-        let result = [];
-        while (size--) {
-            result.push(Ax.uint8_t(ea));
-            ea++;
-        }
-        return result.map(toHex).join(" ");
-    }
-    summary() {
-        return this.dump();
-    }
-    repr() {
-        let ea = toHex(this.getAddress());
-        let value = this.summary();
-        return `[${ea}] <${this.classname}> : ${value}`;
-    }
-}
-
-export class Jarray extends Jcontainer {
-    get classname() { return "Jarray"; }
-    get Type() {
-        throw new errors.UndefinedFieldError('Type');
-    }
-    get Length() {
-        throw new errors.UndefinedFieldError('Length');
-    }
-    constructor(address) {
-        super(address);
-        let object = this.Type;
-        let count = this.Length;
-        let indices = this.indices;
-
-        let ea = this.getAddress();
-        while (count) {
-            let res = new object(ea);
-            indices[this.value.length] = this.value.length;
-            this.value.push(res);
-            ea += res.getSize();
-            count -= 1;
-        }
-    }
-}
-
-export class Jstruct extends Jcontainer {
-    get classname() { return "Jstruct"; }
-    get Fields() {
-        throw new errors.UndefinedFieldError('Fields');
-    }
-
-    constructor(address) {
-        super(address);
-        let fields = this.Fields;
-
-        const indices = this.indices;
-
-        let ea = this.getAddress();
-        fields.map(
-            field => {
-                let [name, type] = field;
-                let res = new type(ea);
-                indices[name] = this.value.length;
-                this.value.push(res);
-                ea += res.getSize();
-            }
-        );
-    }
-    repr() {
-        let ea = this.getAddress();
-        let fields = this.Fields;
-        let result = [];
-        result.push(`<${this.classname}>`);
-        for (let i=0; i < this.value.length; i++) {
-            let addr = toHex(ea);
-            let [name, _] = fields[i];
-            let value = this.value[i];
-            let summary = value.summary();
-            result.push(`[${addr}] "${name}" <${value.classname}> : ${summary}`);
-            ea += this.value[i].getSize();
-        }
-        return result.join("\n");
-    }
-}
-
-export class Jtarray extends Jcontainer {
-    get classname() { return "Jtarray"; }
-    get Type() {
-        throw new errors.UndefinedFieldError('Type');
-    }
-    get Length() {
-        return this.value.length;
-    }
-    isTerminator(value) {
-        throw new errors.MethodNotImplementedError('IsTerminator');
-    }
-    constructor(address) {
-        super(address);
-        let object = this.Type;
-        let indices = this.indices;
-        let ea = this.getAddress();
-
-        let res;
-        do {
-            res = new object(ea);
-            indices[this.value.length] = this.value.length;
-            this.value.push(res);
-            ea += res.getSize();
-        } while (!this.isTerminator(res));
-    }
-}
-
+/* General utility functions */
 function ofCharCode(n) {
     switch (n) {
         case 0:
@@ -347,6 +63,289 @@ function ofCharCode(n) {
     }
 }
 
+/* Base class definitions */
+export class Jatomic {
+    get classname() { return "Jatomic"; }
+    get Size() {
+        throw new errors.PropertyNotImplementedError('Size');
+    }
+    constructor(address, parent=undefined) {
+        [this.address, this.parent] = [address, parent];
+    }
+    bytes() {
+        let [integral, cb] = [this.getValue(), this.getSize()];
+        let res = [];
+        while (cb--) {
+            res.push(integral % 256);
+            integral = Math.trunc(integral / 256);
+        }
+        return res;
+    }
+    serialize() {
+        let [integral, cb] = [this.getValue(), this.getSize()];
+        let res = [];
+        while (cb--) {
+            let ch = integral % 256;
+            res.push(String.fromCharCode(ch));
+            integral = integral / 256;
+        }
+        return Lazy.default(res)
+                   .join("");
+    }
+    getAddress() {
+        return this.address;
+    }
+    getSize() {
+        return this.Size;
+    }
+    getValue() {
+        throw new errors.MethodNotImplementedError('getValue');
+    }
+    dump() {
+        return Lazy.default(Ax.load(this.getAddress(), this.getSize()))
+                   .map(Ax.toHex).join(" ");
+    }
+    summary() {
+        return this.getValue().toString();
+    }
+    repr() {
+        let ea = Ax.toHex(this.getAddress());
+        let value = this.summary();
+        return `[${ea}] <${this.classname}> : ${value}`;
+    }
+}
+
+export class Jatomicu extends Jatomic {
+    get classname() { return "Jatomicu"; }
+    getValue() {
+        let [ofs, cb] = [this.getAddress(), this.getSize()];
+        switch (cb) {
+            case 1:
+                return Ax.loadui(ofs, 1);
+            case 2:
+                return Ax.loadui(ofs, 2);
+            case 4:
+                return Ax.loadui(ofs, 4);
+            case 8:
+                return Ax.loadui(ofs, 8);
+        }
+        if (cb <= 8) {
+            return Lazy.default(Ax.load(ofs, cb))
+                       .reverse()
+                       .reduce((agg, n) => agg * 256 + n);
+        }
+        throw new errors.InvalidSizeError(`Invalid size ${cb} for an unsigned integer was requested.`);
+    }
+    summary() {
+        let value = this.getValue();
+        let value_x = Ax.toHex(value);
+        let value_s = value.toString();
+        return `${value_x} (${value_s})`;
+    }
+}
+
+export class Jatomics extends Jatomic {
+    get classname() { return "Jatomics"; }
+    getValue() {
+        let [ofs, cb] = [this.getAddress(), this.getSize()];
+        switch (cb) {
+            case 1:
+                return Ax.loadsi(ofs, 1);
+            case 2:
+                return Ax.loadsi(ofs, 2);
+            case 4:
+                return Ax.loadsi(ofs, 4);
+            case 8:
+                return Ax.loadsi(ofs, 8);
+        }
+        let sf = Math.pow(2, cb*8 - 1);
+        if (cb <= 8) {
+            let res = Lazy.default(Ax.load(ofs, cb))
+                       .reverse()
+                       .reduce((agg, n) => agg * 256 + n);
+            return (res & sf)? Math.pow(2, 8*cb) - (res % (sf-1)) : res;
+        }
+        throw new errors.InvalidSizeError(`Invalid size ${cb} for a signed integer was requested.`);
+    }
+    summary() {
+        let value = this.getValue();
+        let value_x = Ax.toHex(value);
+        let value_s = value.toString();
+        return `${value_x} (${value_s})`;
+    }
+}
+
+export class Jpointer extends Jatomicu {
+    get classname() { return "Jpointer"; }
+    get Size() {
+        return 4;
+    }
+    get Type() {
+        throw new errors.UndefinedFieldError('Type');
+    }
+    get d() {
+        return this.dereference();
+    }
+    calculate(ea) {
+        return ea;
+    }
+    dereference() {
+        let t = this.Type;
+        let ea = this.calculate(this.getValue());
+        return new t(ea, this);
+    }
+    summary() {
+        let value = this.getValue();
+        let value_x = Ax.toHex(value);
+        let type = this.Type;
+        let type_s = new type().classname;
+        return `${value_x} -> ${type_s}`;
+    }
+}
+
+export class Jcontainer {
+    get classname() { return "Jcontainer"; }
+    constructor(address, parent=undefined) {
+        [this.address, this.parent] = [address, parent];
+        this.value = [];
+        this.indices = {};
+    }
+    bytes() {
+        return Lazy.default(this.value)
+                   .map(n => n.bytes())
+                   .flatten()
+                   .toArray();
+    }
+    serialize() {
+        return Lazy.default(this.value)
+                   .map(n => n.serialize())
+                   .join("");
+    }
+    getAddress() {
+        return this.address;
+    }
+    getLength() {
+        return this.value.length;
+    }
+    getSize() {
+        return this.value.reduce((total, instance) => total + instance.getSize(), 0);
+    }
+    getValue() {
+        return this.value;
+    }
+    field(name) {
+        let index = this.indices[name];
+        return this.value[index];
+    }
+    dump() {
+        return Lazy.default(Ax.load(this.getAddress(), this.getSize()))
+                   .map(Ax.toHex)
+                   .join(" ");
+    }
+    summary() {
+        return this.dump();
+    }
+    repr() {
+        let ea = Ax.toHex(this.getAddress());
+        let value = this.summary();
+        return `[${ea}] <${this.classname}> : ${value}`;
+    }
+}
+
+/* Base container definitions */
+export class Jarray extends Jcontainer {
+    get classname() { return "Jarray"; }
+    get Type() {
+        throw new errors.UndefinedFieldError('Type');
+    }
+    get Length() {
+        throw new errors.UndefinedFieldError('Length');
+    }
+    constructor(address, parent=undefined) {
+        super(address, parent);
+        let object = this.Type;
+        let count = this.Length;
+        let indices = this.indices;
+
+        let ea = this.getAddress();
+        while (count) {
+            let res = new object(ea, this);
+            indices[this.value.length] = this.value.length;
+            this.value.push(res);
+            ea += res.getSize();
+            count -= 1;
+        }
+    }
+}
+
+export class Jstruct extends Jcontainer {
+    get classname() { return "Jstruct"; }
+    get Fields() {
+        throw new errors.UndefinedFieldError('Fields');
+    }
+
+    constructor(address, parent=undefined) {
+        super(address, parent);
+        let fields = this.Fields;
+
+        const indices = this.indices;
+
+        let ea = this.getAddress();
+        fields.map(
+            field => {
+                let [name, type] = field;
+                let res = new type(ea, this);
+                indices[name] = this.value.length;
+                this.value.push(res);
+                ea += res.getSize();
+            }
+        );
+    }
+    repr() {
+        let ea = this.getAddress();
+        let fields = this.Fields;
+        let result = [];
+        result.push(`<${this.classname}>`);
+        for (let i=0; i < this.value.length; i++) {
+            let addr = Ax.toHex(ea);
+            let [name, _] = fields[i];
+            let value = this.value[i];
+            let summary = value.summary();
+            result.push(`[${addr}] "${name}" <${value.classname}> : ${summary}`);
+            ea += this.value[i].getSize();
+        }
+        return result.join("\n");
+    }
+}
+
+/* Dynamic container types */
+export class Jtarray extends Jcontainer {
+    get classname() { return "Jtarray"; }
+    get Type() {
+        throw new errors.UndefinedFieldError('Type');
+    }
+    get Length() {
+        return this.value.length;
+    }
+    isTerminator(value) {
+        throw new errors.MethodNotImplementedError('IsTerminator');
+    }
+    constructor(address, parent=undefined) {
+        super(address, parent);
+        let object = this.Type;
+        let indices = this.indices;
+        let ea = this.getAddress();
+
+        let res;
+        do {
+            res = new object(ea, this);
+            indices[this.value.length] = this.value.length;
+            this.value.push(res);
+            ea += res.getSize();
+        } while (!this.isTerminator(res));
+    }
+}
+
 export class Jstring extends Jarray {
     get classname() { return "Jstring"; }
     get Type() { return Juint8; }
@@ -366,7 +365,7 @@ export class Jstring extends Jarray {
                    .join("");
     }
     repr() {
-        let ea = toHex(this.getAddress());
+        let ea = Ax.toHex(this.getAddress());
         let value = this.summary();
         return `[${ea}] <${this.classname}> : "${value}"`;
     }
@@ -391,13 +390,13 @@ export class Jszstring extends Jtarray {
                    .join("");
     }
     repr() {
-        let ea = toHex(this.getAddress());
+        let ea = Ax.toHex(this.getAddress());
         let value = this.summary();
         return `[${ea}] <${this.classname}> : "${value}"`;
     }
 }
 
-// implementations
+/* Atomic types */
 export class Juint8 extends Jatomicu {
     get classname() { return "Juint8"; }
     get Size() { return 1; }
@@ -431,6 +430,7 @@ export class Jsint64 extends Jatomics {
     get Size() { return 8; }
 }
 
+/* Native (Ax) structure definitions */
 export class ANSI_STRING extends Jstruct {
     get classname() { return "ANSI_STRING"; }
     get Fields() {
@@ -443,12 +443,12 @@ export class ANSI_STRING extends Jstruct {
     summary() {
         let length = this.field('Length').getValue();
         let maxlength = this.field('MaximumLength').getValue();
-        let ptr = toHex(this.field('Buffer').getValue());
+        let ptr = Ax.toHex(this.field('Buffer').getValue());
         let string = Ax.ansistring(this.getAddress());
         return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
     }
     repr() {
-        let ea = toHex(this.getAddress());
+        let ea = Ax.toHex(this.getAddress());
         let value = this.summary();
         return `[${ea}] <${this.classname}> : "${value}"`;
     }
@@ -466,12 +466,12 @@ export class UNICODE_STRING extends Jstruct {
     summary() {
         let length = this.field('Length').getValue();
         let maxlength = this.field('MaximumLength').getValue();
-        let ptr = toHex(this.field('Buffer').getValue());
+        let ptr = Ax.toHex(this.field('Buffer').getValue());
         let string = Ax.unicodestring(this.getAddress());
         return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
     }
     repr() {
-        let ea = toHex(this.getAddress());
+        let ea = Ax.toHex(this.getAddress());
         let value = this.summary();
         return `[${ea}] <${this.classname}> : "${value}"`;
     }
