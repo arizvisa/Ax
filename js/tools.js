@@ -1,10 +1,20 @@
 import { ofHex, toHex, Ax } from './ax';
+import { PEB } from './ndk-pstypes';
+import { GetModuleImports } from './pe-tools';
 const R = require('ramda');
 
 import * as L from 'loglevel';
 const Log = L.getLogger('tools');
 
 import * as Lazy from 'lazy.js';
+
+import * as errors from 'errors';
+import './errors';
+errors.create({
+    name: 'SymbolNotFoundError',
+    defaultExplanation: 'Unable to locate the specified symbol.',
+    parent: errors.NativeError,
+});
 
 /*
  * Scan across a memory region looking for MZ headers
@@ -260,4 +270,66 @@ export function WriteDwords(ea, new_bytes) {
 */
 export function WriteQwords(ea, new_bytes) {
     _WriteData(ea, new_bytes, 8);
+}
+
+/*
+ * Time the execution of a closure F(x) and return it.
+ */
+export function Clock(F, ...x) {
+    const Timer = new Blob([
+        "let running = false;" +
+        "self.addEventListener('message', function(msg) {" +
+        "    running = !running;" +
+        "});" +
+        "let buf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);" +
+        "let counter = new Int32Array(buf);" +
+        "Atomics.store(counter, 0, 0);" +
+        "for(; !running;) {}" +
+        "for(; running;) {" +
+        "    Atomics.add(counter, 0, 1);" +
+        "}" +
+        "self.postMessage(counter);" +
+        "self.close();"
+    ]);
+    let url = global.window.URL.createObjectURL(Timer);
+    let worker = new Worker(url);
+
+    let ticker;
+    worker.onmessage = function(message) {
+        ticker = message;
+    };
+
+    worker.postMessage();
+    let result = F(...x);
+    worker.postMessage();
+    return [ticker, result];
+}
+
+export function* WalkLdr(pebaddr) {
+    let peb = new PEB(pebaddr);
+
+    let ldrp = peb.field('Ldr');
+    let ldr = ldrp.d;
+    let ml = ldr.field('InLoadOrderModuleLoadList');
+    let res = ml.field('Flink');
+    let sentinel = res;
+    while (res.getValue() != sentinel.getAddress()) {
+        res = res.d;
+        yield res;
+        res = res.field('InLoadOrderLinks').field('Flink');
+    }
+    return;
+}
+
+/* XXX: Ordinals are not supported. */
+export function GetProcAddress(handle, symbol) {
+    let [module, name] = symbol.split('!');
+    let list = GetModuleImports(handle, module);
+    for (let i = 0; i < list.length; i++) {
+        let [hint, res] = list[i];
+        if (hint[1] == name)
+            return res;
+        continue;
+    }
+    throw new errors.SymbolNotFoundError(symbol);
 }
