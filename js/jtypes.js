@@ -210,6 +210,11 @@ export class Jcontainer {
         this.value = [];
         this.indices = {};
     }
+    new(t, ...args) {
+        let res = new t(...args);
+        res.parent = this;
+        return res;
+    }
     bytes() {
         return Lazy.default(this.value)
                    .map(n => n.bytes())
@@ -381,6 +386,7 @@ export class Jszstring extends Jtarray {
         return Lazy.default(this.value)
                    .map(n => n.getValue())
                    .map(String.fromCharCode)
+                   .slice(0, -1)
                    .join("");
     }
     summary() {
@@ -428,51 +434,4 @@ export class Jsint32 extends Jatomics {
 export class Jsint64 extends Jatomics {
     get classname() { return "Jsint64"; }
     get Size() { return 8; }
-}
-
-/* Native (Ax) structure definitions */
-export class ANSI_STRING extends Jstruct {
-    get classname() { return "ANSI_STRING"; }
-    get Fields() {
-        return [
-            ['Length', Juint16],
-            ['MaximumLength', Juint16],
-            ['Buffer', Juint32],
-        ];
-    }
-    summary() {
-        let length = this.field('Length').getValue();
-        let maxlength = this.field('MaximumLength').getValue();
-        let ptr = Ax.toHex(this.field('Buffer').getValue());
-        let string = Ax.ansistring(this.getAddress());
-        return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
-    }
-    repr() {
-        let ea = Ax.toHex(this.getAddress());
-        let value = this.summary();
-        return `[${ea}] <${this.classname}> : "${value}"`;
-    }
-}
-
-export class UNICODE_STRING extends Jstruct {
-    get classname() { return "UNICODE_STRING"; }
-    get Fields() {
-        return [
-            ['Length', Juint16],
-            ['MaximumLength', Juint16],
-            ['Buffer', Juint32],
-        ];
-    }
-    summary() {
-        let length = this.field('Length').getValue();
-        let maxlength = this.field('MaximumLength').getValue();
-        let ptr = Ax.toHex(this.field('Buffer').getValue());
-        let string = Ax.unicodestring(this.getAddress());
-        return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
-    }
-    repr() {
-        let ea = Ax.toHex(this.getAddress());
-        let value = this.summary();
-        return `[${ea}] <${this.classname}> : "${value}"`;
-    }
 }

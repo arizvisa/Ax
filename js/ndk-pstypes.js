@@ -1,4 +1,5 @@
-import {Jpointer, Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct, UNICODE_STRING} from './jtypes';
+import {Jpointer, Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct} from './jtypes';
+import {UNICODE_STRING} from './ndk-umtypes';
 import * as errors from 'errors';
 
 // pstypes.js
@@ -6,9 +7,9 @@ class LDR_DATA_TABLE_ENTRY extends Jstruct {
     get classname() { return "LDR_DATA_TABLE_ENTRY"; }
     get Fields() {
         return [
-            ['InLoadOrderLinks', LIST_ENTRY_InLoadOrderModuleList],
-            ['InMemoryOrderLinks', LIST_ENTRY_InMemoryOrderModuleList],
-            ['InInitializationOrderLinks', LIST_ENTRY_InInitializationOrderModuleList],
+            ['InLoadOrderLinks', PEB_LDR_DATA__InLoadOrderModuleList],
+            ['InMemoryOrderLinks', PEB_LDR_DATA__InMemoryOrderModuleList],
+            ['InInitializationOrderLinks', PEB_LDR_DATA__InInitializationOrderModuleList],
             ['DllBase', Juint32],
             ['EntryPoint', Juint32],
             ['SizeOfImage', Juint32],
@@ -32,32 +33,32 @@ class LIST_ENTRY extends Jstruct {
     }
 }
 
-class Ptr_InLoadOrderModuleList extends Jpointer {
+class PEB_LDR_DATA__InLoadOrderModuleList__Ptr extends Jpointer {
     get Type() { return LDR_DATA_TABLE_ENTRY; }
     calculate(ea) { 
         return ea - 0;
     }
 }
-class LIST_ENTRY_InLoadOrderModuleList extends LIST_ENTRY {
-    get Type() { return Ptr_InLoadOrderModuleList; }
+class PEB_LDR_DATA__InLoadOrderModuleList extends LIST_ENTRY {
+    get Type() { return PEB_LDR_DATA__InLoadOrderModuleList__Ptr; }
 }
-class Ptr_InMemoryOrderModuleList extends Jpointer {
+class PEB_LDR_DATA__InMemoryOrderModuleList__Ptr extends Jpointer {
     get Type() { return LDR_DATA_TABLE_ENTRY; }
     calculate(ea) { 
         return ea - 8;
     }
 }
-class LIST_ENTRY_InMemoryOrderModuleList extends LIST_ENTRY {
-    get Type() { return Ptr_InMemoryOrderModuleList; }
+class PEB_LDR_DATA__InMemoryOrderModuleList extends LIST_ENTRY {
+    get Type() { return PEB_LDR_DATA__InMemoryOrderModuleList__Ptr; }
 }
-class Ptr_InInitializationOrderModuleList extends Jpointer {
+class PEB_LDR_DATA__InInitializationOrderModuleList__Ptr extends Jpointer {
     get Type() { return LDR_DATA_TABLE_ENTRY; }
     calculate(ea) { 
         return ea - 16;
     }
 }
-class LIST_ENTRY_InInitializationOrderModuleList extends LIST_ENTRY {
-    get Type() { return Ptr_InInitializationOrderModuleList; }
+class PEB_LDR_DATA__InInitializationOrderModuleList extends LIST_ENTRY {
+    get Type() { return PEB_LDR_DATA__InInitializationOrderModuleList__Ptr; }
 }
 
 class PEB_LDR_DATA extends Jstruct {
@@ -67,9 +68,9 @@ class PEB_LDR_DATA extends Jstruct {
             ['Length', Juint32],
             ['Initialized', Juint32],
             ['SsHandle', Juint32],
-            ['InLoadOrderModuleLoadList', LIST_ENTRY_InLoadOrderModuleList],
-            ['InMemoryOrderModuleList', LIST_ENTRY_InMemoryOrderModuleList],
-            ['InInitializationOrderModuleList', LIST_ENTRY_InInitializationOrderModuleList],
+            ['InLoadOrderModuleLoadList', PEB_LDR_DATA__InLoadOrderModuleList],
+            ['InMemoryOrderModuleList', PEB_LDR_DATA__InMemoryOrderModuleList],
+            ['InInitializationOrderModuleList', PEB_LDR_DATA__InInitializationOrderModuleList],
             ['EntryInProgress', Juint32],
             ['ShutdownInProgress', Juint32],
             ['ShutdownThreadId', Juint32],
@@ -77,7 +78,7 @@ class PEB_LDR_DATA extends Jstruct {
     }
 }
 
-class LdrPointer extends Jpointer {
+class PEB__LdrPointer extends Jpointer {
     get classname() { return "*Ldr"; }
     get Type() {
         return PEB_LDR_DATA;
@@ -94,7 +95,7 @@ export class PEB extends Jstruct {
             ['BitField', Juint8],
             ['Mutant', Juint32],
             ['ImageBaseAddress', Juint32],
-            ['Ldr', LdrPointer],
+            ['Ldr', PEB__LdrPointer],
         ];
     }
 }
