@@ -4,7 +4,7 @@ import * as errors from 'errors';
 
 // pstypes.js
 class LDR_DATA_TABLE_ENTRY extends Jstruct {
-    get classname() { return "LDR_DATA_TABLE_ENTRY"; }
+    static typename() { return 'LDR_DATA_TABLE_ENTRY'; }
     get Fields() {
         return [
             ['InLoadOrderLinks', PEB_LDR_DATA__InLoadOrderModuleList],
@@ -20,7 +20,7 @@ class LDR_DATA_TABLE_ENTRY extends Jstruct {
 }
 
 class LIST_ENTRY extends Jstruct {
-    get classname() { return "LIST_ENTRY"; }
+    static typename() { return 'LIST_ENTRY'; }
     get Type() {
         throw new errors.UndefinedFieldError('Type');
     }
@@ -34,6 +34,7 @@ class LIST_ENTRY extends Jstruct {
 }
 
 class PEB_LDR_DATA__InLoadOrderModuleList__Ptr extends Jpointer {
+    static typename() { return 'LDR_DATA_TABLE_ENTRY*'; }
     get Type() { return LDR_DATA_TABLE_ENTRY; }
     calculate(ea) { 
         return ea - 0;
@@ -43,6 +44,7 @@ class PEB_LDR_DATA__InLoadOrderModuleList extends LIST_ENTRY {
     get Type() { return PEB_LDR_DATA__InLoadOrderModuleList__Ptr; }
 }
 class PEB_LDR_DATA__InMemoryOrderModuleList__Ptr extends Jpointer {
+    static typename() { return 'LDR_DATA_TABLE_ENTRY*'; }
     get Type() { return LDR_DATA_TABLE_ENTRY; }
     calculate(ea) { 
         return ea - 8;
@@ -52,6 +54,7 @@ class PEB_LDR_DATA__InMemoryOrderModuleList extends LIST_ENTRY {
     get Type() { return PEB_LDR_DATA__InMemoryOrderModuleList__Ptr; }
 }
 class PEB_LDR_DATA__InInitializationOrderModuleList__Ptr extends Jpointer {
+    static typename() { return 'LDR_DATA_TABLE_ENTRY*'; }
     get Type() { return LDR_DATA_TABLE_ENTRY; }
     calculate(ea) { 
         return ea - 16;
@@ -62,7 +65,7 @@ class PEB_LDR_DATA__InInitializationOrderModuleList extends LIST_ENTRY {
 }
 
 class PEB_LDR_DATA extends Jstruct {
-    get classname() { return "Ldr"; }
+    static typename() { return 'PEB_LDR_DATA'; }
     get Fields() {
         return [
             ['Length', Juint32],
@@ -79,14 +82,14 @@ class PEB_LDR_DATA extends Jstruct {
 }
 
 class PEB__LdrPointer extends Jpointer {
-    get classname() { return "*Ldr"; }
+    static typename() { return 'PEB_LDR_DATA*'; }
     get Type() {
         return PEB_LDR_DATA;
     }
 }
 
 export class PEB extends Jstruct {
-    get classname() { return "PEB"; }
+    static typename() { return 'PEB'; }
     get Fields() {
         return [
             ['InheritedAddressSpace', Juint8],

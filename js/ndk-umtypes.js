@@ -3,7 +3,7 @@ import {Juint8, Juint16, Juint32, Juint64, Jstruct} from './jtypes';
 
 /* Native (Ax) structure definitions */
 export class ANSI_STRING extends Jstruct {
-    get classname() { return "ANSI_STRING"; }
+    static typename() { return 'ANSI_STRING'; }
     get Fields() {
         return [
             ['Length', Juint16],
@@ -12,21 +12,21 @@ export class ANSI_STRING extends Jstruct {
         ];
     }
     summary() {
-        let length = this.field('Length').getValue();
-        let maxlength = this.field('MaximumLength').getValue();
-        let ptr = Ax.toHex(this.field('Buffer').getValue());
-        let string = Ax.ansistring(this.getAddress());
+        let length = this.field('Length').int();
+        let maxlength = this.field('MaximumLength').int();
+        let ptr = Ax.toHex(this.field('Buffer').int());
+        let string = Ax.ansistring(this.address);
         return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
     }
     repr() {
-        let ea = Ax.toHex(this.getAddress());
+        let ea = Ax.toHex(this.address);
         let value = this.summary();
-        return `[${ea}] <${this.classname}> : "${value}"`;
+        return `[${ea}] <${this.constructor.classname}> : "${value}"`;
     }
 }
 
 export class UNICODE_STRING extends Jstruct {
-    get classname() { return "UNICODE_STRING"; }
+    static typename() { return 'UNICODE_STRING'; }
     get Fields() {
         return [
             ['Length', Juint16],
@@ -35,15 +35,15 @@ export class UNICODE_STRING extends Jstruct {
         ];
     }
     summary() {
-        let length = this.field('Length').getValue();
-        let maxlength = this.field('MaximumLength').getValue();
-        let ptr = Ax.toHex(this.field('Buffer').getValue());
-        let string = Ax.unicodestring(this.getAddress());
+        let length = this.field('Length').int();
+        let maxlength = this.field('MaximumLength').int();
+        let ptr = Ax.toHex(this.field('Buffer').int());
+        let string = Ax.unicodestring(this.address);
         return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
     }
     repr() {
-        let ea = Ax.toHex(this.getAddress());
+        let ea = Ax.toHex(this.address);
         let value = this.summary();
-        return `[${ea}] <${this.classname}> : "${value}"`;
+        return `[${ea}] <${this.constructor.classname}> : "${value}"`;
     }
 }

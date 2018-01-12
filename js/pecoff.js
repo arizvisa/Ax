@@ -6,19 +6,21 @@ const Log = L.getLogger('pecoff');
 
 import * as errors from 'errors';
 errors.create({
-    name: 'NotFoundError',
+    name: 'TypeNotFoundError',
     defaultExplanation: 'Unable to locate specific type.',
-    parent: errors.NativeError,
+    parent: errors.RuntimeError,
 });
 
-function virtualaddress(object, ea) {
-    let res = object;
-    while (res) {
-        if (res instanceof IMAGE_DOS_HEADER)
-            return res.getAddress() + ea;
-        res = res.parent;
+class RVAPointer extends Jpointer {
+    calculate(ea) {
+        let res = this;
+        while (res) {
+            if (res instanceof IMAGE_DOS_HEADER)
+                return res.address + ea;
+            res = res.parent;
+        }
+        throw new errors.TypeNotFoundError();
     }
-    throw new errors.NotFoundError();
 }
 
 class IMAGE_DOS_HEADER__e_reserved extends Jarray {
@@ -31,7 +33,7 @@ class IMAGE_DOS_HEADER__e_reserved2 extends Jarray {
 }
 
 export class IMAGE_DOS_HEADER extends Jstruct {
-    get classname() { return 'IMAGE_DOS_HEADER'; }
+    static typename() { return 'IMAGE_DOS_HEADER'; }
     get Fields() {
         return [
             ['e_magic', Juint16],
@@ -58,7 +60,7 @@ export class IMAGE_DOS_HEADER extends Jstruct {
 }
 
 class IMAGE_FILE_HEADER extends Jstruct {
-    get classname() { return 'IMAGE_FILE_HEADER'; }
+    static typename() { return 'IMAGE_FILE_HEADER'; }
     get Fields() {
         return [
             ['Machine', Juint16],
@@ -73,7 +75,7 @@ class IMAGE_FILE_HEADER extends Jstruct {
 }
 
 class IMAGE_OPTIONAL_HEADER extends Jstruct {
-    get classname() { return 'IMAGE_OPTIONAL_HEADER'; }
+    static typename() { return 'IMAGE_OPTIONAL_HEADER'; }
     get Fields() {
         return [
             ['Magic', Juint16],
@@ -111,9 +113,9 @@ class IMAGE_OPTIONAL_HEADER extends Jstruct {
 }
 
 export class IMAGE_DATA_DIRECTORY extends Jstruct {
-    get classname() { return 'IMAGE_DATA_DIRECTORY'; }
+    static typename() { return 'IMAGE_DATA_DIRECTORY'; }
     get Type() {
-        let ea = this.getAddress();
+        let ea = this.address;
         Log.warn(`Ignoring untyped pointer for field Address in IMAGE_DATA_DIRECTORY(${toHex(ea)}).`);
         return Juint32;
     }
@@ -130,7 +132,7 @@ class IMAGE_SECTION_HEADER__Name extends Jstring {
 }
 
 export class IMAGE_SECTION_HEADER extends Jstruct {
-    get classname() { return 'IMAGE_SECTION_HEADER'; }
+    static typename() { return 'IMAGE_SECTION_HEADER'; }
     get Fields() {
         return [
             ['Name', IMAGE_SECTION_HEADER__Name],
@@ -148,7 +150,7 @@ export class IMAGE_SECTION_HEADER extends Jstruct {
 }
 
 export class IMAGE_NT_HEADER extends Jstruct {
-    get classname() { return 'IMAGE_NT_HEADER'; }
+    static typename() { return 'IMAGE_NT_HEADER'; }
     get Fields() {
         return [
             ['Signature', Juint16],
@@ -162,85 +164,85 @@ export class IMAGE_NT_HEADER extends Jstruct {
 }
 
 export class IMAGE_NT_HEADER__DataDirectory extends Jarray {
-    get classname() { return 'DataDirectory{' + this.Length + '}'; }
+    static typename() { return 'DataDirectory{' + this.Length + '}'; }
     get Type() { return IMAGE_DATA_DIRECTORY; }
     get Length() {
-        let pe_hdr = this.parent;
-        let res = pe_hdr.field('OptionalHeader').field('NumberOfRvaAndSizes');
-        return res.getValue();
+        let header = this.parent;
+        let res = header.field('OptionalHeader').field('NumberOfRvaAndSizes');
+        return res.int();
     }
 }
 
 export class IMAGE_NT_HEADER__SectionTable extends Jarray {
-    get classname() { return 'SectionTable{' + this.Length + '}'; }
+    static typename() { return 'SectionTable{' + this.Length + '}'; }
     get Type() { return IMAGE_SECTION_HEADER; }
     get Length() {
-        let pe_hdr = this.parent;
-        let res = pe_hdr.field('FileHeader').field('NumberOfSections');
-        return res.getValue();
+        let header = this.parent;
+        let res = header.field('FileHeader').field('NumberOfSections');
+        return res.int();
     }
 }
 
-class IMAGE_EXPORT_DIRECTORY__pAddressOfFunctions extends Jpointer {
-    get classname() { return 'AddressOfFunctions'; }
+class IMAGE_EXPORT_DIRECTORY__Name extends RVAPointer {
+    static typename() { return 'Jszstring*'; }
+    get Type() { return Jszstring; }
+}
+
+class IMAGE_EXPORT_DIRECTORY__pAddressOfFunctions extends RVAPointer {
+    static typename() { return 'Jpointer{...}*'; }
     get Type() { return IMAGE_EXPORT_DIRECTORY__AddressOfFunctions; }
-    calculate(ea) {
-        return virtualaddress(this, ea);
-    }
 }
 class IMAGE_EXPORT_DIRECTORY__AddressOfFunctions extends Jarray {
-    get classname() { return '*AddressOfFunctions'; }
-    get Type() { return Juint32; }  /* FIXME: pointer to a virtualaddress */
+    static typename() { return 'Jpointer{...}'; }
+    get Type() { return Jpointer; }  /* FIXME: pointer to a virtualaddress */
     get Length() {
         let ptr = this.parent;
         let directory = ptr.parent;
-        return directory.field('NumberOfFunctions').getValue();
+        return directory.field('NumberOfFunctions').int();
     }
 }
 
-class IMAGE_EXPORT_DIRECTORY__pAddressOfNames extends Jpointer {
-    get classname() { return 'AddressOfNames'; }
+class IMAGE_EXPORT_DIRECTORY__pAddressOfNames extends RVAPointer {
+    static typename() { return 'Jszstring*{...}*'; }
     get Type() { return IMAGE_EXPORT_DIRECTORY__AddressOfNames; }
-    calculate(ea) {
-        return virtualaddress(this, ea);
-    }
 }
 class IMAGE_EXPORT_DIRECTORY__AddressOfNames extends Jarray {
-    get classname() { return '*AddressOfNames'; }
-    get Type() { return Juint32; }  /* FIXME: pointer to a virtualaddress -> szstring */
+    static typename() { return 'Jszstring*{...}'; }
+    get Type() { return IMAGE_EXPORT_DIRECTORY__AddressOfNames__pString; }
     get Length() {
         let ptr = this.parent;
         let directory = ptr.parent;
-        return directory.field('NumberOfNames').getValue();
+        return directory.field('NumberOfNames').int();
     }
+}
+class IMAGE_EXPORT_DIRECTORY__AddressOfNames__pString extends RVAPointer {
+    static typename() { return 'Jszstring*'; }
+    get Type() { return Jszstring; }
 }
 
-class IMAGE_EXPORT_DIRECTORY__pAddressOfNameOrdinals extends Jpointer {
-    get classname() { return 'AddressOfNameOrdinals'; }
+class IMAGE_EXPORT_DIRECTORY__pAddressOfNameOrdinals extends RVAPointer {
+    static typename() { return 'Juint16{...}*'; }
     get Type() { return IMAGE_EXPORT_DIRECTORY__AddressOfNameOrdinals; }
-    calculate(ea) {
-        return virtualaddress(this, ea);
-    }
 }
 class IMAGE_EXPORT_DIRECTORY__AddressOfNameOrdinals extends Jarray {
-    get classname() { return '*AddressOfNameOrdinals'; }
+    static typename() { return 'Juint16{...}'; }
     get Type() { return Juint16; }
     get Length() {
         let ptr = this.parent;
         let directory = ptr.parent;
-        return directory.field('NumberOfNames').getValue();
+        return directory.field('NumberOfNames').int();
     }
 }
 
 export class IMAGE_EXPORT_DIRECTORY extends Jstruct {
-    get classname() { return 'IMAGE_EXPORT_DIRECTORY'; }
+    static typename() { return 'IMAGE_EXPORT_DIRECTORY'; }
     get Fields() {
         return [
             ['Flags', Juint32],
             ['TimeDateStamp', Juint32],
             ['MajorVersion', Juint16],
             ['MinorVersion', Juint16],
-            ['Name', Juint32],
+            ['Name', IMAGE_EXPORT_DIRECTORY__Name],
             ['Base', Juint32],
             ['NumberOfFunctions', Juint32],
             ['NumberOfNames', Juint32],
@@ -251,63 +253,50 @@ export class IMAGE_EXPORT_DIRECTORY extends Jstruct {
     }
 }
 
+class IMAGE_IMPORT_DIRECTORY_ENTRY__pINT extends RVAPointer {
+    static typename() { return 'IMAGE_IMPORT_NAME_HINT{...}**'; }
+    get Type() { return IMAGE_IMPORT_DIRECTORY_ENTRY__INT; }
+}
+class IMAGE_IMPORT_DIRECTORY_ENTRY__INT extends Jtarray {
+    static typename() { return 'IMAGE_IMPORT_NAME_HINT{...}*'; }
+    get Type() { return IMAGE_IMPORT_DIRECTORY_ENTRY__INT__HINT; }
+    isTerminator(object) {
+        return object.int() == 0;
+    }
+}
+class IMAGE_IMPORT_DIRECTORY_ENTRY__INT__HINT extends RVAPointer {
+    static typename() { return 'IMAGE_IMPORT_NAME_HINT*'; }
+    get Type() { return IMAGE_IMPORT_NAME_HINT; }
+}
 class IMAGE_IMPORT_NAME_HINT extends Jstruct {
-    get classname() { return '*IMAGE_IMPORT_NAME_HINT'; }
+    static typename() { return 'IMAGE_IMPORT_NAME_HINT'; }
     get Fields() {
         return [
             ['Hint', Juint16],
-            ['String', Jszstring],
+            ['String', Jszstring], // FIXME: should be word-aligned
         ];
     }
 }
-class IMAGE_IMPORT_DIRECTORY_ENTRY__INT__HINT extends Jpointer {
-    get classname() { return 'IMAGE_IMPORT_NAME_HINT'; }
-    get Type() { return IMAGE_IMPORT_NAME_HINT; }
-    calculate(ea) {
-        return virtualaddress(this, ea);
-    }
-}
 
-class IMAGE_IMPORT_DIRECTORY_ENTRY__pINT extends Jpointer {
-    get classname() { return 'INT'; }
-    get Type() { return IMAGE_IMPORT_DIRECTORY_ENTRY__INT; }
-    calculate(ea) {
-        return virtualaddress(this, ea);
-    }
-}
-class IMAGE_IMPORT_DIRECTORY_ENTRY__INT extends Jtarray {
-    get classname() { return '*INT'; }
-    get Type() { return IMAGE_IMPORT_DIRECTORY_ENTRY__INT__HINT; }
-    isTerminator(value) {
-        return value.getValue() == 0;
-    }
-}
-
-class IMAGE_IMPORT_DIRECTORY_ENTRY__pName extends Jpointer {
-    get classname() { return 'Name'; }
+class IMAGE_IMPORT_DIRECTORY_ENTRY__pName extends RVAPointer {
+    static typename() { return 'Jszstring*'; }
     get Type() { return Jszstring; }
-    calculate(ea) {
-        return virtualaddress(this, ea);
-    }
 }
 
-class IMAGE_IMPORT_DIRECTORY_ENTRY__pIAT extends Jpointer {
-    get classname() { return 'IAT'; }
+class IMAGE_IMPORT_DIRECTORY_ENTRY__pIAT extends RVAPointer {
+    static typename() { return 'Juint32{...}*'; }
     get Type() { return IMAGE_IMPORT_DIRECTORY_ENTRY__IAT; }
-    calculate(ea) {
-        return virtualaddress(this, ea);
-    }
 }
 class IMAGE_IMPORT_DIRECTORY_ENTRY__IAT extends Jtarray {
-    get classname() { return '*IAT'; }
+    static typename() { return 'Juint32{...}'; }
     get Type() { return Juint32; }
-    isTerminator(value) {
-        return value.getValue() == 0;
+    isTerminator(object) {
+        return object.int() == 0;
     }
 }
 
 export class IMAGE_IMPORT_DIRECTORY_ENTRY extends Jstruct {
-    get classname() { return 'IMAGE_IMPORT_DIRECTORY_ENTRY'; }
+    static typename() { return 'IMAGE_IMPORT_DIRECTORY_ENTRY'; }
     get Fields() {
         return [
             ['INT', IMAGE_IMPORT_DIRECTORY_ENTRY__pINT],
@@ -320,9 +309,9 @@ export class IMAGE_IMPORT_DIRECTORY_ENTRY extends Jstruct {
 }
 
 export class IMAGE_IMPORT_DIRECTORY extends Jtarray {
-    get classname() { return 'IMAGE_IMPORT_DIRECTORY'; }
+    static typename() { return 'IMAGE_IMPORT_DIRECTORY'; }
     get Type() { return IMAGE_IMPORT_DIRECTORY_ENTRY; }
-    isTerminator(value) {
-        return value.field('IAT').getValue() == 0;
+    isTerminator(object) {
+        return object.field('IAT').int() == 0;
     }
 }
