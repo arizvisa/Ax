@@ -10,10 +10,11 @@ import * as Lazy from 'lazy.js';
 
 import * as errors from 'errors';
 import './errors';
+
 errors.create({
     name: 'SymbolNotFoundError',
     defaultExplanation: 'Unable to locate the specified symbol.',
-    parent: errors.NativeError,
+    parent: errors.RuntimeError,
 });
 
 /*
@@ -313,7 +314,7 @@ export function* WalkLdr(pebaddr) {
     let ml = ldr.field('InLoadOrderModuleLoadList');
     let res = ml.field('Flink');
     let sentinel = res;
-    while (res.getValue() != sentinel.getAddress()) {
+    while (res.int() != sentinel.address) {
         res = res.d;
         yield res;
         res = res.field('InLoadOrderLinks').field('Flink');
