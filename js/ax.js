@@ -19,13 +19,13 @@ errors.create({
 errors.create({
     name: 'LoadError',
     defaultExplanation: 'Unable to read from specified memory location.',
-    parent: errors.NativeError,
+    parent: errors.MemoryError,
 });
 
 errors.create({
     name: 'StoreError',
     defaultExplanation: 'Unable to write to specified memory location.',
-    parent: errors.NativeError,
+    parent: errors.MemoryError,
 });
 
 // internal ActiveX object for reading things from memory
@@ -101,9 +101,28 @@ function __load__(address, size) {
 }
 
 /* calls __store__(...) until it returns a size that's less than or equal to `c` while adjusting `n`. */
-const fstore = (ea, c, n) => __store__(ea, c, n) || ((c-1 > 0)? fstore(ea, c-1, Math.trunc(n/256)) : 0);
+// const fstore = (ea, c, n) => __store__(ea, c, n) || ((c-1 > 0)? fstore(ea, c-1, Math.trunc(n/256)) : 0);
+export function fstore(ea, c, n) {
+    do {
+        let res = __store__(ea, c, n);
+        if (res)
+            return res;
+        c--;
+    } while(c > 0);
+    return 0;
+}
+
 /* calls __load__(...) until it returns a size that's less than or equal to `c`. */
-const fload = (ea, c) => __load__(ea, c) || ((c-1 > 0)? fload(ea, c-1) : [0, 0]);
+// const fload = (ea, c) => __load__(ea, c) || ((c-1 > 0)? fload(ea, c-1) : [0, 0]);
+export function fload(ea, c) {
+    do {
+        let res = __load__(ea, c);
+        if (res)
+            return res;
+        c--;
+    } while(c > 0);
+    return [0, 0];
+}
 
 /*
  * Store an array of bytes to `address`.
