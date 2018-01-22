@@ -289,7 +289,7 @@ export function Crc32(crc, buff) {
  *  num_bytes - Number of bytes to read and calculate each crc
  *  target - Target crc
  *
- * Example - Find the crc 0x755a08af of the first 250 bytes of addresses in `exes`
+ * Example - Find the crc 0xdeadbeef of the first 250 bytes of addresses in `exes`
  *  let prot_crc = 0xdeadbeef;
  *  console.log('kernel32', toHex(FindModule(exes, 250, prot_crc)));
  *
