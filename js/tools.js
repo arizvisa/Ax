@@ -261,3 +261,52 @@ export function WriteDwords(ea, new_bytes) {
 export function WriteQwords(ea, new_bytes) {
     _WriteData(ea, new_bytes, 8);
 }
+
+/*
+ * CRC32 implementation
+ * Example:
+ *  let bytes = ReadBytes(0xdeadbeef, 100);
+ *  let crc = crc32(0, bytes);
+ */
+
+export function Crc32(crc, buff) {
+    crc = 0xffffffff & ~crc;
+    for (let i = 0; i < buff.length; i++) {
+        crc = crc ^ buff[i];
+        for (let j = 0; j < 8; j++) {
+            crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+        }
+    }
+    return (0xffffffff & ~crc) >>> 0;
+}
+
+/* 
+ * Attempts to find a given module by reading N bytes from each
+ * address in the addrs argument looking for the given crc
+ *
+ * Arguments:
+ *  addrs - Array of addresses to read from
+ *  num_bytes - Number of bytes to read and calculate each crc
+ *  target - Target crc
+ *
+ * Example - Find the crc 0x755a08af of the first 250 bytes of addresses in `exes`
+ *  let prot_crc = 0xdeadbeef;
+ *  console.log('kernel32', toHex(FindModule(exes, 250, prot_crc)));
+ *
+ * Return - Address of the target CRC if found or undefined otherwise
+ */
+export function FindModule(addrs, num_bytes, target) {
+    let crcs = {};
+    addrs.map( addr => [addr, ReadBytes(addr, num_bytes)])
+         .map( args => { 
+             let [addr, bytes] = args;
+             let res = [addr, Crc32(0, bytes)]; 
+             return res;
+         })
+         .map( args => { 
+             let [addr, crc] = args; 
+             crcs[crc] = addr; 
+         });
+
+    return crcs[target];
+}
