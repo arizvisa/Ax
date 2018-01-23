@@ -1,6 +1,6 @@
 import { ofHex, toHex, Ax } from './ax';
 import { PEB } from './ndk-pstypes';
-import { GetModuleImports } from './pe-tools';
+import { GetModuleImports, GetModuleExports } from './pe-tools';
 const R = require('ramda');
 
 import * as L from 'loglevel';
@@ -20,7 +20,7 @@ errors.create({
 /*
  * Scan across a memory region looking for MZ headers
  * Return an array of all addresses in [0x1000, 0x7fffffff] that start with MZ
- 
+
     let exes = ScanForExecutables(0x1000, 0xfffffff);
 
  * Assumption: MZ headers are page aligned, hence we search in increments of 0x1000
@@ -65,9 +65,9 @@ function _ScanForExecutables(start=0x1000, end=0x7fffffff) {
 /*
  * Scans for an array of bytes in a given memory range
  * Example: Look for the string 'in DOS mode' within [0x23e0000, 23e0000+500]
- 
+
     import * as Lazy from 'lazy.js';
- 
+
     let bytes = Lazy.default('in DOS mode')
                     .mapString( letter => letter.charCodeAt(0) )
                     .toArray();
@@ -90,7 +90,7 @@ export function ScanForBytes(bytes, start, end) {
                .toArray();
 }
 
-/* 
+/*
  * Read a number of bytes from a given address
  * Example: Read 10 bytes from the 0x1230000
  *
@@ -108,7 +108,7 @@ export function ReadBytes(ea, n) {
     return bytes;
 }
 
-/* 
+/*
  * Read a number of words from a given address
  * Example: Read 10 words from the 0x1230000
  *
@@ -125,7 +125,7 @@ export function ReadWords(ea, n) {
     return words;
 }
 
-/* 
+/*
  * Read a number of dwords from a given address
  * Example: Read 10 dwords from the 0x1230000
  *
@@ -142,7 +142,7 @@ export function ReadDwords(ea, n) {
     return dwords;
 }
 
-/* 
+/*
  * Read a number of qwords from a given address
  * Example: Read 10 qwords from the 0x1230000
  *
@@ -162,7 +162,7 @@ export function ReadQwords(ea, n) {
 /*
  * Infinitely read bytes from a given address (to be used with Lazy)
  * Example: Read 10 dwords from 0xdeadbeef
- 
+
     let dwords = Lazy.generate(_ReadBytes(0xdeadbeef, 4))
                      .take(n)
                      .toArray();
@@ -200,7 +200,7 @@ function _ReadBytes(ea, bytes=1) {
     };
 }
 
-/* 
+/*
  * Internal function used for writing arbitrary data to a memory space
  * Arguments:
  *  ea: address to start writing
@@ -221,11 +221,11 @@ function _WriteData(ea, new_bytes, bytes=1) {
         });
 }
 
-/* 
+/*
  * Write a sequence of bytes to the address ea
  *
  * Example: Write bytes 0x12, 0x34, 0x56 to address 0x10770
- * 
+ *
  *   let bytes = [0x12, 0x34, 0x56];
  *   let ea = 0x10770;
  *   WriteBytes(ea, bytes);
@@ -234,11 +234,11 @@ export function WriteBytes(ea, new_bytes) {
     _WriteData(ea, new_bytes, 1);
 }
 
-/* 
+/*
  * Write a sequence of words to the address ea
  *
  * Example: Write words 0x0012, 0x0034, 0x0056 to address 0x10770
- * 
+ *
  *   let words = [0x12, 0x34, 0x56];
  *   let ea = 0x10770;
  *   WriteWords(ea, words);
@@ -247,11 +247,11 @@ export function WriteWords(ea, new_bytes) {
     _WriteData(ea, new_bytes, 2);
 }
 
-/* 
+/*
  * Write a sequence of dwords to the address ea
  *
  * Example: Write dwords 0xdeadbeef, 0xcafebabe, 0x41414141 to address 0x10770
- * 
+ *
  *   let dwords = [0xdeadbeef, 0xcafebabe, 0x41414141];
  *   let ea = 0x10770;
  *   WriteDwords(ea, dwords);
@@ -260,11 +260,11 @@ export function WriteDwords(ea, new_bytes) {
     _WriteData(ea, new_bytes, 4);
 }
 
-/* 
+/*
  * Write a sequence of qwords to the address ea
  *
  * Example: Write qwords 0xdeadbeefcafebabe, 0x4141414142424242 to address 0x10770
- * 
+ *
  *   let qwords = [0xdeadbeefcafebabe, 0x4141414142424242];
  *   let ea = 0x10770;
  *   WriteQwords(ea, qwords);
@@ -274,38 +274,39 @@ export function WriteQwords(ea, new_bytes) {
 }
 
 /*
- * Time the execution of a closure F(x) and return it.
+ * Time the execution of a closure F(x) in milliseconds and return it
+ * along with it's result.
+ *
+ * Example: Sleep for 3 seconds and clock it.
+ *
+ *   function sleep(secs) {
+ *     const [tick, ms] = [Date.now(), secs * 1000];
+ *     while (Date.now() - tick < ms);
+ *     return Date.now() - tick;
+ *   }
+ *
+ *   let [to, result] = Clock(sleep, 3);
  */
 export function Clock(F, ...x) {
-    const Timer = new Blob([
-        "let running = false;" +
-        "self.addEventListener('message', function(msg) {" +
-        "    running = !running;" +
-        "});" +
-        "let buf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);" +
-        "let counter = new Int32Array(buf);" +
-        "Atomics.store(counter, 0, 0);" +
-        "for(; !running;) {}" +
-        "for(; running;) {" +
-        "    Atomics.add(counter, 0, 1);" +
-        "}" +
-        "self.postMessage(counter);" +
-        "self.close();"
-    ]);
-    let url = global.window.URL.createObjectURL(Timer);
-    let worker = new Worker(url);
-
-    let ticker;
-    worker.onmessage = function(message) {
-        ticker = message;
-    };
-
-    worker.postMessage();
-    let result = F(...x);
-    worker.postMessage();
-    return [ticker, result];
+    const now = (typeof performance == "object" && typeof performance.now != "undefined")? (() => performance.now()) : (() => Date.now());
+    let [start, result, stop] = [now(), F(...x), now()];
+    return [stop - start, result];
 }
 
+/*
+ * Yield the address of each module stored in the .Ldr field of the PEB
+ * at the specified `pebaddr`.
+ *
+ * Example: Iterate through all modules in PEB and output their name
+ *          and base address.
+ *
+ *   let pebaddress = 0x7fde0000;
+ *   for (let m in WalkLdr(pebaddress)) {
+ *       let [ea, cb] = [m.field('DllBase'), m.field('SizeOfImage')];
+ *       let [ea_x, cb_x] = [ea.int().toString(16), cb.int().toString(16)];
+ *       console.log(`${ea_x}+${cb_x} : ${m.field('BaseDllName').str()} : ${m.field('FullDllName').str()}`);
+ *   }
+ */
 export function* WalkLdr(pebaddr) {
     let peb = new PEB(pebaddr);
 
@@ -322,15 +323,78 @@ export function* WalkLdr(pebaddr) {
     return;
 }
 
-/* XXX: Ordinals are not supported. */
-export function GetProcAddress(handle, symbol) {
+/*
+ * Given a module handle/address and a symbol name, return it's
+ * address.
+ *
+ * Example: Using the kernel32.dll module, return the address of
+ *          the NtAllocateVirtualMemory entrypoint within ntdll.dll.
+ *
+ *   let kernel32_address = 0x6b800000
+ *   let ea = GetImportAddress(
+ *       kernel32_address,
+ *       'ntdll.dll!NtAllocateVirtualMemory'
+ *   );
+ *   console.log(`&NtAllocateVirtualMemory: ${ea.toString(16)});
+ */
+export function GetImportAddress(handle, symbol) {
+    // XXX: Ordinals are not supported due to forwarded RVA not being
+    //      implemented by GetModuleImports..
     let [module, name] = symbol.split('!');
+
+    // Walk through the imports in the specified module
     let list = GetModuleImports(handle, module);
     for (let i = 0; i < list.length; i++) {
         let [hint, res] = list[i];
         if (hint[1] == name)
             return res;
-        continue;
+        Log.debug(`GetImportAddress(0x${toHex(handle)}, "${symbol}") : Skipping Symbol due to non-match of ${name} : ${hint}`);
     }
+
+    // Okay, we didn't find shit...
+    Log.debug(`GetImportAddress(0x${toHex(handle)}, "${symbol}") : Unable to locate symbol in module's import table`);
+    throw new errors.SymbolNotFoundError(symbol);
+}
+
+/*
+ * Given the PEB and a symbol name, return it's address.
+ *
+ * Example: Find the address of VirtualProtectEx within kernelbase.dll
+ *
+ *   let pebaddr = 0x7fde0000
+ *   let ea = GetProcAddress(
+ *       pebaddr,
+ *       'kernelbase.dll!VirtualProtectEx'
+ *   );
+ *   console.log(`&kernelbase!VirtualProtectEx: ${ea.toString(16)});
+ */
+export function GetProcAddress(pebaddress, symbol) {
+    let [module, name] = symbol.split('!');
+
+    // Find the correct module here first.
+    const path_separator = '\\';
+    let dllbase;
+    for (let m in WalkLdr(pebaddress)) {
+        let [sn, ln] = [m.field('BaseDllName').str(), m.field('FullDllName').str()];
+        if (sn == module || ln.endsWith(`${path_separator}${module}`)) {
+            dllbase = m.field('DllBase').int();
+            break;
+        }
+        Log.debug(`GetProcAddress(0x${toHex(pebaddress)}, "${symbol}") : Skipping module due to non-match of ${module} : ${sn} ${ln}`);
+    }
+    if (typeof dllbase == "undefined")
+        throw new errors.SymbolNotFoundError(symbol);
+
+    // Now we can find the symbol index.
+    let exports = GetModuleExports(dllbase);
+    for (let i = 0; i < exports.length; i++) {
+        let [n, res] = exports[i];
+        if (n == name)
+            return res;
+        Log.debug(`GetProcAddress(0x${toHex(pebaddress)}, "${symbol}") : Skipping symbol due to non-match of ${name} : ${n}`);
+    }
+
+    // Nothing found!
+    Log.debug(`GetProcAddress(0x${toHex(pebaddress)}, "${symbol}") : Unable to locate ${symbol} in peb.ldr`);
     throw new errors.SymbolNotFoundError(symbol);
 }
