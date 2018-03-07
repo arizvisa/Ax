@@ -300,8 +300,8 @@ export function Clock(F, ...x) {
  * Example: Iterate through all modules in PEB and output their name
  *          and base address.
  *
- *   let pebaddress = 0x7fde0000;
- *   for (let m in WalkLdr(pebaddress)) {
+ *   let pebaddress = 0x7efde000;
+ *   for (let m of WalkLdr(pebaddress)) {
  *       let [ea, cb] = [m.field('DllBase'), m.field('SizeOfImage')];
  *       let [ea_x, cb_x] = [ea.int().toString(16), cb.int().toString(16)];
  *       console.log(`${ea_x}+${cb_x} : ${m.field('BaseDllName').str()} : ${m.field('FullDllName').str()}`);
@@ -374,7 +374,7 @@ export function GetProcAddress(pebaddress, symbol) {
     // Find the correct module here first.
     const path_separator = '\\';
     let dllbase;
-    for (let m in WalkLdr(pebaddress)) {
+    for (let m of WalkLdr(pebaddress)) {
         let [sn, ln] = [m.field('BaseDllName').str(), m.field('FullDllName').str()];
         if (sn == module || ln.endsWith(`${path_separator}${module}`)) {
             dllbase = m.field('DllBase').int();
