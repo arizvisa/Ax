@@ -18,7 +18,7 @@ errors.create({
 });
 
 /*
- * Scan across a memory region looking for MZ headers
+ * Scan across a memory region looking for MZ headers by iterating over mappings.
  * Return an array of all addresses in [0x1000, 0x7fffffff] that start with MZ
 
     let exes = ScanForExecutables(0x1000, 0xfffffff);
@@ -48,6 +48,42 @@ function _ScanForExecutables(start=0x1000, end=0x7fffffff) {
                 continue;
             }
 
+            // check that first word matches our header fingerprint
+            let res = Ax.uint16_t(address);
+            if (fingerprintQ(res)) {
+                let ret_addr = address;
+                address = address + msize;
+                return ret_addr;
+            }
+
+            // skip to next mapping
+            address = address + msize;
+        }
+    };
+}
+
+/*
+ * Scan across a memory region looking for MZ headers by iterating over pages.
+ * Return an array of all addresses in [0x1000, 0x7fffffff] that start with MZ
+
+    let exes = ScanForExecutables(0x1000, 0xfffffff);
+
+ * Assumption: MZ headers are page aligned, hence we search in increments of 0x1000
+ */
+
+export function ScanForExecutablesUnsafe(start, end) {
+    return Lazy.generate(_ScanForExecutablesUnsafe(start, end))
+               .take(1000)
+               .filter( function(x) { if (!isNaN(x)) { return x; } }) // Need this check since the generator returns undefined when finished
+               .toArray();
+}
+
+function _ScanForExecutablesUnsafe(start=0x1000, end=0x7fffffff) {
+    let [address, msize] = [start, 0x1000];
+
+    return function scans() {
+        const fingerprintQ = R.allPass([R.is(Number), R.equals(0x5A4D)]);
+        while (address < end) {
             // check that first word matches our header fingerprint
             let res = Ax.uint16_t(address);
             if (fingerprintQ(res)) {
