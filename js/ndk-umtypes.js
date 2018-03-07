@@ -15,13 +15,17 @@ export class ANSI_STRING extends Jstruct {
         let length = this.field('Length').int();
         let maxlength = this.field('MaximumLength').int();
         let ptr = Ax.toHex(this.field('Buffer').int());
-        let string = Ax.ansistring(this.address);
+        let string = this.str();
         return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
     }
     repr() {
         let ea = Ax.toHex(this.address);
         let value = this.summary();
         return `[${ea}] <${this.constructor.classname}> : "${value}"`;
+    }
+    str() {
+      // FIXME: extract this ansi string correctly instead of using Ax.
+      return Ax.ansistring(this.address);
     }
 }
 
@@ -38,12 +42,16 @@ export class UNICODE_STRING extends Jstruct {
         let length = this.field('Length').int();
         let maxlength = this.field('MaximumLength').int();
         let ptr = Ax.toHex(this.field('Buffer').int());
-        let string = Ax.unicodestring(this.address);
+        let string = this.str();
         return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
     }
     repr() {
         let ea = Ax.toHex(this.address);
         let value = this.summary();
         return `[${ea}] <${this.constructor.classname}> : "${value}"`;
+    }
+    str() {
+      // FIXME: extract this unicode string correctly instead of using Ax.
+      return Ax.unicodestring(this.address);
     }
 }

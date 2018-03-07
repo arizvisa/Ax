@@ -417,7 +417,7 @@ export function Crc32(crc, buff) {
     return (0xffffffff & ~crc) >>> 0;
 }
 
-/* 
+/*
  * Attempts to find a given module by reading N bytes from each
  * address in the addrs argument looking for the given crc
  *
@@ -435,14 +435,14 @@ export function Crc32(crc, buff) {
 export function FindModule(addrs, num_bytes, target) {
     let crcs = {};
     addrs.map( addr => [addr, ReadBytes(addr, num_bytes)])
-         .map( args => { 
+         .map( args => {
              let [addr, bytes] = args;
-             let res = [addr, Crc32(0, bytes)]; 
+             let res = [addr, Crc32(0, bytes)];
              return res;
          })
-         .map( args => { 
-             let [addr, crc] = args; 
-             crcs[crc] = addr; 
+         .map( args => {
+             let [addr, crc] = args;
+             crcs[crc] = addr;
          });
 
     return crcs[target];
