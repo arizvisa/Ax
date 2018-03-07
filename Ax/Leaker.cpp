@@ -12,8 +12,8 @@ using namespace std;
 
 #include "disassembler.h"
 
-// define this to use seh for trapping all illegal memory accesses
-#define SAFE_MEMACCESS
+// define this to avoid using seh to trap an illegal memory access
+//#define UNSAFE_MEMACCESS
 
 /** globals */
 namespace utils {
@@ -382,12 +382,12 @@ STDMETHODIMP CLeaker::disassemble(ULONGLONG ea, ULONG n, BSTR* result)
 	std::stringstream os;
 	intptr_t p = static_cast<intptr_t>(ea);
 
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		if (disasm.disasm(p, n, os) != static_cast<size_t>(n))
 			return S_FALSE;
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -419,11 +419,11 @@ STDMETHODIMP CLeaker::dump(ULONGLONG ea, ULONG n, BSTR type, BSTR* result)
 	Dumper::dumptype dumper = utils::CstringToDumptype(typestr);
 	Dumper d(disasm.m_bits, 16);
 
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		(d.*dumper)(p, n, os);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -444,12 +444,12 @@ STDMETHODIMP CLeaker::dump(ULONGLONG ea, ULONG n, BSTR type, BSTR* result)
 STDMETHODIMP CLeaker::uint8_t(ULONGLONG ea, ULONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		auto res = utils::ubyte1(p);
 		*result = static_cast<ULONGLONG>(res);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -463,12 +463,12 @@ STDMETHODIMP CLeaker::sint8_t(ULONGLONG ea, LONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
 
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		auto res = utils::sbyte1(p);
 		*result = static_cast<LONGLONG>(res);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -481,12 +481,12 @@ STDMETHODIMP CLeaker::sint8_t(ULONGLONG ea, LONGLONG* result)
 STDMETHODIMP CLeaker::uint16_t(ULONGLONG ea, ULONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		auto res = utils::uint2(p);
 		*result = static_cast<ULONGLONG>(res);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -499,12 +499,12 @@ STDMETHODIMP CLeaker::uint16_t(ULONGLONG ea, ULONGLONG* result)
 STDMETHODIMP CLeaker::sint16_t(ULONGLONG ea, LONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		auto res = utils::sint2(p);
 		*result = static_cast<LONGLONG>(res);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -517,12 +517,12 @@ STDMETHODIMP CLeaker::sint16_t(ULONGLONG ea, LONGLONG* result)
 STDMETHODIMP CLeaker::uint32_t(ULONGLONG ea, ULONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		auto res = utils::uint4(p);
 		*result = static_cast<ULONGLONG>(res);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -535,12 +535,12 @@ STDMETHODIMP CLeaker::uint32_t(ULONGLONG ea, ULONGLONG* result)
 STDMETHODIMP CLeaker::sint32_t(ULONGLONG ea, LONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		auto res = utils::sint4(p);
 		*result = static_cast<LONGLONG>(res);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -553,12 +553,12 @@ STDMETHODIMP CLeaker::sint32_t(ULONGLONG ea, LONGLONG* result)
 STDMETHODIMP CLeaker::uint64_t(ULONGLONG ea, ULONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		auto res = utils::uint8(p);
 		*result = static_cast<ULONGLONG>(res);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -571,12 +571,12 @@ STDMETHODIMP CLeaker::uint64_t(ULONGLONG ea, ULONGLONG* result)
 STDMETHODIMP CLeaker::sint64_t(ULONGLONG ea, LONGLONG* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		auto res = utils::sint8(p);
 		*result = static_cast<LONGLONG>(res);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -589,12 +589,12 @@ STDMETHODIMP CLeaker::sint64_t(ULONGLONG ea, LONGLONG* result)
 STDMETHODIMP CLeaker::binary32(ULONGLONG ea, FLOAT* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		auto res = utils::binary32(p);
 		*result = static_cast<FLOAT>(res);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -607,12 +607,12 @@ STDMETHODIMP CLeaker::binary32(ULONGLONG ea, FLOAT* result)
 STDMETHODIMP CLeaker::binary64(ULONGLONG ea, DOUBLE* result)
 {
 	intptr_t p = static_cast<intptr_t>(ea);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		auto res = utils::binary64(p);
 		*result = static_cast<DOUBLE>(res);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -630,11 +630,11 @@ STDMETHODIMP CLeaker::unicodestring(ULONGLONG ea, BSTR* result)
 	PUNICODE_STRING us = reinterpret_cast<PUNICODE_STRING>(p);
 
 	// convert UNICODE_STRING to an std::wstring
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		wstr.assign(us->Buffer, us->Length);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -658,11 +658,11 @@ STDMETHODIMP CLeaker::ansistring(ULONGLONG ea, BSTR* result)
 	PANSI_STRING as = reinterpret_cast<PANSI_STRING>(p);
 
 	// convert ANSI_STRING to an std::string
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		str.assign(as->Buffer, as->Length);
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
@@ -856,7 +856,7 @@ STDMETHODIMP CLeaker::store(ULONGLONG ea, ULONG n, ULONGLONG value, ULONGLONG* r
 		std::uint32_t* p4; std::uint64_t* p8;
 	};
 
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	try {
 #endif
 		switch (n) {
@@ -892,7 +892,7 @@ STDMETHODIMP CLeaker::store(ULONGLONG ea, ULONG n, ULONGLONG value, ULONGLONG* r
 			utils::setLastError(STATUS_INVALID_PARAMETER);
 			return S_FALSE;
 		}
-#ifdef SAFE_MEMACCESS
+#if !defined(UNSAFE_MEMACCESS)
 	}
 	catch (...) {
 		utils::setLastError(STATUS_ACCESS_VIOLATION);
