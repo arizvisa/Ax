@@ -26,6 +26,11 @@ errors.create({
     defaultExplanation: 'This instance is not currently initialized.',
     parent: errors.RuntimeError,
 });
+errors.create({
+    name: 'ArgumentTypeError',
+    defaultExplanation: 'An incorrect type was passed as an argument.',
+    parent: errors.StaticError,
+});
 
 /* General utility functions */
 function ofCharCode(n) {
@@ -147,16 +152,17 @@ export class Jatomic extends Jtype {
                    .join('');
     }
     dump() {
-        return Lazy.default(Ax.load(this.address, this.size))
-                   .map(Ax.toHex).join(' ');
+        const value = Ax.load(this.address, this.size);
+        return Lazy.default(value)
+                   .map(n => Ax.toHex(n))
+                   .join(' ');
     }
     summary() {
         return this.value.toString();
     }
     repr() {
-        let ea = Ax.toHex(this.address);
-        let value = this.summary();
-        return `[${ea}] <${this.classname}> : ${value}`;
+        const [ea, summary] = [Ax.toHex(this.address), this.summary()];
+        return `[${ea}] <${this.classname}> : ${summary}`;
     }
     int() {
         return this.value;
@@ -178,15 +184,16 @@ export class Jatomicu extends Jatomic {
                 return Ax.loadui(ofs, 8);
         }
         if (cb <= 8) {
-            return Lazy.default(Ax.load(ofs, cb))
+            const value = Ax.load(ofs, cb);
+            return Lazy.default(value)
                        .reverse()
                        .reduce((agg, n) => agg * 256 + n);
         }
         throw new errors.InvalidSizeError(`Invalid size ${cb} for an unsigned integer was requested.`);
     }
     summary() {
-        let res = this.value;
-        let [value_x, value_s] = [Ax.toHex(res), res.toString()];
+        const value = this.value;
+        let [value_x, value_s] = [Ax.toHex(value), value.toString()];
         return `${value_x} (${value_s})`;
     }
 }
@@ -207,16 +214,17 @@ export class Jatomics extends Jatomic {
         }
         let sf = Math.pow(2, cb*8 - 1);
         if (cb <= 8) {
-            let res = Lazy.default(Ax.load(ofs, cb))
-                       .reverse()
-                       .reduce((agg, n) => agg * 256 + n);
+            const value = Ax.load(ofs, cb);
+            let res = Lazy.default(value)
+                          .reverse()
+                          .reduce((agg, n) => agg * 256 + n);
             return (res & sf)? Math.pow(2, 8*cb) - (res % (sf-1)) : res;
         }
         throw new errors.InvalidSizeError(`Invalid size ${cb} for a signed integer was requested.`);
     }
     summary() {
-        let res = this.value;
-        let [value_x, value_s] = [Ax.toHex(res), res.toString()];
+        const value = this.value;
+        let [value_x, value_s] = [Ax.toHex(value), value.toString()];
         return `${value_x} (${value_s})`;
     }
 }
@@ -267,15 +275,15 @@ export class Jcontainer extends Jtype {
         this._indices = {};
     }
     bytes() {
-        const res = this._value;
-        return Lazy.default(res)
+        const value = this._value;
+        return Lazy.default(value)
                    .map(n => n.bytes())
                    .flatten()
                    .toArray();
     }
     serialize() {
-        const res = this._value;
-        return Lazy.default(res)
+        const value = this._value;
+        return Lazy.default(value)
                    .map(n => n.serialize())
                    .join('');
     }
@@ -284,9 +292,9 @@ export class Jcontainer extends Jtype {
         return this._value[index];
     }
     dump() {
-        const res = Ax.load(this.address, this.size);
-        return Lazy.default(res)
-                   .map(Ax.toHex)
+        const value = Ax.load(this.address, this.size);
+        return Lazy.default(value)
+                   .map(n => Ax.toHex(n))
                    .join(' ');
     }
     summary() {
@@ -324,17 +332,40 @@ export class Jarray extends Jcontainer {
     }
 }
 
-export function DefineArray(object, length) {
+export function DefineArray(object, length, name=undefined) {
+    let realname = `DynamicArray(${('typename' in object)? object.typename() : object}, ${(typeof length == "number")? length : '...'})`;
+
+    let object_;
+    if (object.prototype instanceof Jtype)
+        object_ = (T) => object;
+    else if (typeof object == "function")
+        object_ = (T) => object(T);
+    else
+        throw new errors.ArgumentTypeError("object");
+
+    let length_;
+    if (typeof length == "number")
+        length_ = (T) => length;
+    else if (typeof length == "function")
+        length_ = (T) => length(T);
+    else
+        throw new errors.ArgumentTypeError("length");
+
+    let name_;
+    if (typeof name == "string")
+        name_ = (T) => name;
+    else if (typeof name == "function")
+        name_ = (T) => name(T);
+    else if (typeof name == "undefined")
+        name_ = (T) => `DynamicArray(${T.Type.typename()}, ${T.Length})`;
+    else
+        throw new errors.ArgumentTypeError("name");
+
     class DynamicArray extends Jarray {
-      static typename() {
-          return `DynamicArray(${object.typename()}, ${length})`;
-      }
-      get Type() {
-          return object;
-      }
-      get Length() {
-          return length;
-      }
+        static typename() { return realname; }
+        get classname() { return name_(this); }
+        get Type() { return object_(this); }
+        get Length() { return length_(this); }
     }
     return DynamicArray;
 }
@@ -375,13 +406,27 @@ export class Jstruct extends Jcontainer {
     }
 }
 
-export function DefineStruct(fields) {
+export function DefineStruct(fields, name=undefined) {
     const fields_ = fields.slice();
+
+    let name_;
+    if (typeof name == "string")
+        name_ = (T) => name;
+    else if (typeof name == "function")
+        name_ = (T) => name(T);
+    else if (typeof name == "undefined")
+        name_ = (T) => T.typename();
+    else
+        throw new errors.ArgumentTypeError("name");
+
     class DynamicStruct extends Jstruct {
         static typename() {
-            const count = fields_.length;
-            return `DynamicStruct([..${count} fields..])`;
+            return `DynamicStruct([..${fields_.length} fields..])`;
         }
+
+        get classname() { return name_(this); }
+
+        // XXX: does it make sense for the following to be dynamic/callable?
         get Fields() { return fields_; }
     }
     return DynamicStruct;
@@ -422,16 +467,15 @@ export class Jstring extends Jarray {
         throw new errors.UndefinedFieldError('Length');
     }
     str() {
-        /* XXX: ensure this returns an ascii-only string. */
         return Lazy.default(this.value)
                    .map(n => n.value)
-                   .map(String.fromCharCode)
+                   .map(ch => String.fromCharCode(ch))
                    .join('');
     }
     summary() {
         return Lazy.default(this.value)
                    .map(n => n.value)
-                   .map(ofCharCode)
+                   .map(ch => ofCharCode(ch))
                    .join('');
     }
     repr() {
@@ -447,17 +491,16 @@ export class Jszstring extends Jtarray {
         return object.value == 0;
     }
     str() {
-        /* XXX: ensure this returns an ascii-only string. */
         return Lazy.default(this.value)
                    .map(n => n.value)
-                   .map(String.fromCharCode)
+                   .map(ch => String.fromCharCode(ch))
                    .slice(0, -1)
                    .join('');
     }
     summary() {
         return Lazy.default(this.value)
                    .map(n => n.value)
-                   .map(ofCharCode)
+                   .map(ch => ofCharCode(ch))
                    .join('');
     }
     repr() {
