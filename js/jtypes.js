@@ -324,6 +324,21 @@ export class Jarray extends Jcontainer {
     }
 }
 
+export function DefineArray(object, length) {
+    class DynamicArray extends Jarray {
+      static typename() {
+          return `DynamicArray(${object.typename()}, ${length})`;
+      }
+      get Type() {
+          return object;
+      }
+      get Length() {
+          return length;
+      }
+    }
+    return DynamicArray;
+}
+
 export class Jstruct extends Jcontainer {
     static typename() { return 'Jstruct'; }
     get Fields() {
@@ -358,6 +373,18 @@ export class Jstruct extends Jcontainer {
         }
         return result.join('\n');
     }
+}
+
+export function DefineStruct(fields) {
+    const fields_ = fields.slice();
+    class DynamicStruct extends Jstruct {
+        static typename() {
+            const count = fields_.length;
+            return `DynamicStruct([..${count} fields..])`;
+        }
+        get Fields() { return fields_; }
+    }
+    return DynamicStruct;
 }
 
 /* Dynamic container types */

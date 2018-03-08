@@ -116,7 +116,7 @@ export class IMAGE_DATA_DIRECTORY extends Jstruct {
     static typename() { return 'IMAGE_DATA_DIRECTORY'; }
     get Type() {
         let ea = this.address;
-        Log.warn(`Ignoring untyped pointer for field Address in IMAGE_DATA_DIRECTORY(${toHex(ea)}).`);
+        Log.debug(`Ignoring untyped pointer for field Address in IMAGE_DATA_DIRECTORY(${toHex(ea)}).`);
         return Juint32;
     }
     get Fields() {
@@ -164,7 +164,8 @@ export class IMAGE_NT_HEADER extends Jstruct {
 }
 
 export class IMAGE_NT_HEADER__DataDirectory extends Jarray {
-    static typename() { return 'DataDirectory{' + this.Length + '}'; }
+    static typename() { return 'DataDirectory{...}'; }
+    get classname() { return 'DataDirectory{' + this.Length + '}'; }
     get Type() { return IMAGE_DATA_DIRECTORY; }
     get Length() {
         let header = this.parent;
@@ -174,7 +175,8 @@ export class IMAGE_NT_HEADER__DataDirectory extends Jarray {
 }
 
 export class IMAGE_NT_HEADER__SectionTable extends Jarray {
-    static typename() { return 'SectionTable{' + this.Length + '}'; }
+    static typename() { return 'SectionTable{...}'; }
+    get classname() { return 'SectionTable{' + this.Length + '}'; }
     get Type() { return IMAGE_SECTION_HEADER; }
     get Length() {
         let header = this.parent;
