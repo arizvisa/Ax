@@ -102,12 +102,12 @@ class IMAGE_OPTIONAL_HEADER extends Jstruct {
             ['CheckSum', Juint32],
             ['Subsystem', Juint16],
             ['DllCharacteristics', Juint16],
-            ['SizeOfStackReserve', Juint32],            
-            ['SizeOfStackCommit', Juint32],            
-            ['SizeOfHeapReserve', Juint32],            
-            ['SizeOfHeapCommit', Juint32],            
-            ['LoaderFlags', Juint32],            
-            ['NumberOfRvaAndSizes', Juint32],            
+            ['SizeOfStackReserve', Juint32],
+            ['SizeOfStackCommit', Juint32],
+            ['SizeOfHeapReserve', Juint32],
+            ['SizeOfHeapCommit', Juint32],
+            ['LoaderFlags', Juint32],
+            ['NumberOfRvaAndSizes', Juint32],
         ];
     }
 }

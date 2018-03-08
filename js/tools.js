@@ -388,7 +388,7 @@ export function GetImportAddress(handle, symbol) {
     }
 
     // Okay, we didn't find shit...
-    Log.debug(`GetImportAddress(0x${toHex(handle)}, "${symbol}") : Unable to locate symbol in module's import table`);
+    Log.warn(`GetImportAddress(0x${toHex(handle)}, "${symbol}") : Unable to locate symbol in module's import table`);
     throw new errors.SymbolNotFoundError(symbol);
 }
 
@@ -431,7 +431,7 @@ export function GetProcAddress(pebaddress, symbol) {
     }
 
     // Nothing found!
-    Log.debug(`GetProcAddress(0x${toHex(pebaddress)}, "${symbol}") : Unable to locate ${symbol} in peb.ldr`);
+    Log.warn(`GetProcAddress(0x${toHex(pebaddress)}, "${symbol}") : Unable to locate ${symbol} in peb.ldr`);
     throw new errors.SymbolNotFoundError(symbol);
 }
 

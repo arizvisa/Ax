@@ -36,7 +36,7 @@ class LIST_ENTRY extends Jstruct {
 class PEB_LDR_DATA__InLoadOrderModuleList__Ptr extends Jpointer {
     static typename() { return 'LDR_DATA_TABLE_ENTRY*'; }
     get Type() { return LDR_DATA_TABLE_ENTRY; }
-    calculate(ea) { 
+    calculate(ea) {
         return ea - 0;
     }
 }
@@ -46,7 +46,7 @@ class PEB_LDR_DATA__InLoadOrderModuleList extends LIST_ENTRY {
 class PEB_LDR_DATA__InMemoryOrderModuleList__Ptr extends Jpointer {
     static typename() { return 'LDR_DATA_TABLE_ENTRY*'; }
     get Type() { return LDR_DATA_TABLE_ENTRY; }
-    calculate(ea) { 
+    calculate(ea) {
         return ea - 8;
     }
 }
@@ -56,7 +56,7 @@ class PEB_LDR_DATA__InMemoryOrderModuleList extends LIST_ENTRY {
 class PEB_LDR_DATA__InInitializationOrderModuleList__Ptr extends Jpointer {
     static typename() { return 'LDR_DATA_TABLE_ENTRY*'; }
     get Type() { return LDR_DATA_TABLE_ENTRY; }
-    calculate(ea) { 
+    calculate(ea) {
         return ea - 16;
     }
 }
