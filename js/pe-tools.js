@@ -5,29 +5,30 @@ import { IMAGE_DOS_HEADER, IMAGE_NT_HEADER, IMAGE_IMPORT_DIRECTORY, IMAGE_EXPORT
 import * as L from 'loglevel';
 const Log = L.getLogger('pe-tools');
 
-import * as errors from 'errors';
+import * as Err from 'errors';
 import './errors';
+const errors = Err.default;
 
 /* Different Pecoff parsing errors */
-errors.create({
+Err.create({
     name: 'PeCoffParsingException',
     defaultExplanation: 'Unexpected error while attempting to parse PECOFF executable.',
-    parent: errors.RuntimeError,
+    parent: Err.RuntimeError,
 });
-errors.create({
+Err.create({
     name: 'ImportTableMissingError',
     defaultExplanation: 'No import table found within specified PECOFF executable.',
-    parent: errors.PeCoffParsingException,
+    parent: Err.PeCoffParsingException,
 });
-errors.create({
+Err.create({
     name: 'ExportTableMissingError',
     defaultExplanation: 'No export table found within specified PECOFF executable.',
-    parent: errors.PeCoffParsingException,
+    parent: Err.PeCoffParsingException,
 });
-errors.create({
+Err.create({
     name: 'ImportModuleNotFoundError',
     defaultExplanation: 'Specified import module was not found.',
-    parent: errors.RuntimeError,
+    parent: Err.RuntimeError,
 });
 
 /* Miscellaneous tools for dealing with Pecoff files */

@@ -4,11 +4,13 @@ import {toHex, ofHex} from './ax';
 import * as L from 'loglevel';
 const Log = L.getLogger('pecoff');
 
-import * as errors from 'errors';
-errors.create({
+import * as Err from 'errors';
+const errors = Err.default;
+
+Err.create({
     name: 'TypeNotFoundError',
     defaultExplanation: 'Unable to locate specific type.',
-    parent: errors.RuntimeError,
+    parent: Err.RuntimeError,
 });
 
 class RVAPointer extends Jpointer {
@@ -19,7 +21,7 @@ class RVAPointer extends Jpointer {
                 return res.address + ea;
             res = res.parent;
         }
-        throw new errors.TypeNotFoundError();
+        throw new errors.TypeNotFoundError(IMAGE_DOS_HEADER);
     }
 }
 

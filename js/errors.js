@@ -1,66 +1,66 @@
-import * as errors from 'errors';
+import * as Err from 'errors';
 
 /** Base classes that all exception types are derived from. */
-errors.create({
+Err.create({
     name: 'NotImplementedError',
     defaultExplanation: 'Missing implementation.',
 });
 
-errors.create({
+Err.create({
     name: 'StaticError',
     defaultExplanation: 'A static error has occurred.',
 });
 
-errors.create({
+Err.create({
     name: 'RuntimeError',
     defaultExplanation: 'A runtime error has occurred.',
 });
 
-errors.create({
+Err.create({
     name: 'PropertyNotImplementedError',
     defaultExplanation: 'This class is missing the implementation of a required propery.',
-    parent: errors.NotImplementedError,
+    parent: Err.NotImplementedError,
 });
 
-errors.create({
+Err.create({
     name: 'MethodNotImplementedError',
     defaultExplanation: 'This class is missing the implementation of a required method.',
-    parent: errors.NotImplementedError,
+    parent: Err.NotImplementedError,
 });
 
-errors.create({
+Err.create({
     name: 'PrivateMemberError',
     defaultExplanation: 'This member is private and may not be accessed.',
-    parent: errors.StaticError,
+    parent: Err.StaticError,
 });
 
-errors.create({
+Err.create({
     name: 'ProtectedMemberError',
     defaultExplanation: 'This member is protected and may not be modified.',
-    parent: errors.StaticError,
+    parent: Err.StaticError,
 });
 
-errors.create({
+Err.create({
     name: 'IntegerError',
     defaultExplanation: 'An integer error has occurred.',
-    parent: errors.RuntimeError,
+    parent: Err.RuntimeError,
 });
 
-errors.create({
+Err.create({
     name: 'FloatingPointError',
     defaultExplanation: 'A floating-point error has occurred.',
-    parent: errors.RuntimeError,
+    parent: Err.RuntimeError,
 });
 
-errors.create({
+Err.create({
     name: 'AssertionError',
     defaultExplanation: 'An assertion has failed.',
-    parent: errors.StaticError,
+    parent: Err.StaticError,
 });
 
-errors.create({
+Err.create({
     name: 'MemoryError',
     defaultExplanation: 'An invalid memory access has occurred.',
-    parent: errors.RuntimeError,
+    parent: Err.RuntimeError,
 });
 

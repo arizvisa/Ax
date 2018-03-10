@@ -1,7 +1,6 @@
-import * as errors from 'errors';
+import * as Err from 'errors';
 import './errors';
-
-import * as Lazy from 'lazy.js';
+const errors = Err.default;
 
 import * as L from 'loglevel';
 const Log = L.getLogger('ax');
@@ -10,22 +9,20 @@ const Log = L.getLogger('ax');
 const MAX_SAFE_INTEGER_BITS = 53;   // Standard ECMA-252 Ed-5.1 Sec-8.5
 
 /* Error message types native memory interaction. */
-errors.create({
+Err.create({
     name: 'OutOfBoundsError',
     defaultExplanation: 'The specified integer is not within the required bounds.',
-    parent: errors.IntegerError,
+    parent: Err.IntegerError,
 });
-
-errors.create({
+Err.create({
     name: 'LoadError',
     defaultExplanation: 'Unable to read from specified memory location.',
-    parent: errors.MemoryError,
+    parent: Err.MemoryError,
 });
-
-errors.create({
+Err.create({
     name: 'StoreError',
     defaultExplanation: 'Unable to write to specified memory location.',
-    parent: errors.MemoryError,
+    parent: Err.MemoryError,
 });
 
 // internal ActiveX object for reading things from memory
@@ -173,6 +170,8 @@ export function storeui(address, size, integral) {
     if (!(integral >= 0 && integral <= MAX_INTEGRAL))
         throw new OutOfBoundsError(`storeui(${address}, ${size}, ${integral}) : Requested integer does not fit within the specified size. (${integral} > ${MAX_INTEGRAL})`);
 
+    // XXX: n >>> 0 will convert 32-bit signed to unsigned
+
     return storei(address, size, integral);
 }
 
@@ -186,6 +185,8 @@ export function storesi(address, size, integral) {
     const [MIN_INTEGRAL, MAX_INTEGRAL] = [Math.pow(2, size*8) / -2, Math.pow(2, size*8) / 2 - 1];
     if (!(MIN_INTEGRAL <= integral <= MAX_INTEGRAL))
         throw new OutOfBoundsError(`storesi(${address}, ${size}, ${integral}) : Requested integer does not fit within the specified size. (${INTEGRAL} : ${MIN_INTEGRAL}<>${MAX_INTEGRAL})`);
+
+    // XXX: n >> 0 will convert 32-bit unsigned to signed
 
     // Unsign our signed `integral`, and then just forward to storeui.
     let res = (integral < 0)? integral + MAX_INTEGRAL : integral;
@@ -249,6 +250,8 @@ export function loadui(address, size) {
     if (!(size <= INTEGER_BYTES))
         Log.warn(`loadui(${address}, ${size}) : Requested size is larger than the bounds supported by the Javascript implementation. Precision maybe affected. (${size} > ${INTEGER_BYTES})`);
 
+    // XXX: n >>> 0 will convert 32-bit signed to unsigned
+
     return loadi(address, size);
 }
 
@@ -263,6 +266,8 @@ export function loadsi(address, size) {
         Log.warn(`loadsi(${address}, ${size}) : Requested size is larger than the bounds supported by the Javascript implementation. Precision maybe affected. (${size} > ${INTEGER_BYTES})`);
 
     const [MIN_INTEGRAL, MAX_INTEGRAL] = [Math.pow(2, size*8) / -2, Math.pow(2, size*8) / 2 - 1];
+
+    // XXX: n >> 0 will convert 32-bit unsigned to signed
 
     let res = loadi(address, size);
     return (res < MAX_INTEGRAL)? res : -1 * (Math.pow(2, size*8) - res);
@@ -303,8 +308,17 @@ function loadi(address, size) {
     }
 
     // reduce the integers we read from `address` into one aggregate.
-    return Lazy.default(components)
-               .reduce(((agg, n) => agg * Math.pow(2, 8*n[0]) + n[1]), 0);
+    return components.reduce(((agg, n) => agg * Math.pow(2, 8*n[0]) + n[1]), 0);
+}
+
+/*
+ * Extract `count` bits from `number` starting at the specified `bit`.
+ */
+function extract(number, bit, count) {
+    const divisor = Math.pow(2, count);
+    const shift = Math.pow(2, bit);
+    let res = Math.trunc(number / shift);
+    return res - (Math.trunc(res / divisor) * divisor);
 }
 
 /*

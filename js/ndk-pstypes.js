@@ -1,6 +1,8 @@
 import {Jpointer, Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct} from './jtypes';
 import {UNICODE_STRING} from './ndk-umtypes';
-import * as errors from 'errors';
+
+import * as Err from 'errors';
+const errors = Err.default;
 
 // pstypes.js
 class LDR_DATA_TABLE_ENTRY extends Jstruct {

@@ -8,13 +8,14 @@ const Log = L.getLogger('tools');
 
 import * as Lazy from 'lazy.js';
 
-import * as errors from 'errors';
+import * as Err from 'errors';
 import './errors';
+const errors = Err.default;
 
-errors.create({
+Err.create({
     name: 'SymbolNotFoundError',
     defaultExplanation: 'Unable to locate the specified symbol.',
-    parent: errors.RuntimeError,
+    parent: Err.RuntimeError,
 });
 
 /*

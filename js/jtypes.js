@@ -1,35 +1,41 @@
 import * as Ax from './ax';
 
-import * as errors from 'errors';
+import * as Err from 'errors';
 import './errors';
+const errors = Err.default;
 
 import * as Lazy from 'lazy.js';
 
 /* Error message types for jtypes. */
-errors.create({
+Err.create({
     name: 'UndefinedFieldError',
     defaultExplanation: 'This subclass is missing a required field.',
-    parent: errors.NotImplementedError,
+    parent: Err.NotImplementedError,
 });
-errors.create({
+Err.create({
     name: 'InvalidSizeError',
     defaultExplanation: 'An invalid size has been specified.',
-    parent: errors.IntegerError,
+    parent: Err.IntegerError,
 });
-errors.create({
+Err.create({
     name: 'InvalidAddressError',
     defaultExplanation: 'An invalid address has been specified.',
-    parent: errors.MemoryError,
+    parent: Err.MemoryError,
 });
-errors.create({
+Err.create({
     name: 'UninitializedError',
     defaultExplanation: 'This instance is not currently initialized.',
-    parent: errors.RuntimeError,
+    parent: Err.RuntimeError,
 });
-errors.create({
+Err.create({
     name: 'ArgumentTypeError',
     defaultExplanation: 'An incorrect type was passed as an argument.',
-    parent: errors.StaticError,
+    parent: Err.StaticError,
+});
+Err.create({
+    name: 'FieldNotFoundError',
+    defaultExplanation: 'The specified field was not found.',
+    parent: Err.RuntimeError,
 });
 
 /* General utility functions */
@@ -289,6 +295,8 @@ export class Jcontainer extends Jtype {
     }
     field(name) {
         const index = this._indices[name];
+        if (this._value[index] === void 0)
+            throw new errors.FieldNotFoundError(name);
         return this._value[index];
     }
     dump() {
@@ -487,6 +495,55 @@ export class Jstring extends Jarray {
 export class Jszstring extends Jtarray {
     static typename() { return 'Jszstring'; }
     get Type() { return Juint8; }
+    isTerminator(object) {
+        return object.value == 0;
+    }
+    str() {
+        return Lazy.default(this.value)
+                   .map(n => n.value)
+                   .map(ch => String.fromCharCode(ch))
+                   .slice(0, -1)
+                   .join('');
+    }
+    summary() {
+        return Lazy.default(this.value)
+                   .map(n => n.value)
+                   .map(ch => ofCharCode(ch))
+                   .join('');
+    }
+    repr() {
+        let [ea_x, value_s] = [Ax.toHex(this.address), this.summary()];
+        return `[${ea_x}] <${this.classname}> : "${value_s}"`;
+    }
+}
+
+export class Jwstring extends Jarray {
+    static typename() { return 'Jwstring'; }
+    get Type() { return Juint16; }
+    get Length() {
+        throw new errors.UndefinedFieldError('Length');
+    }
+    str() {
+        return Lazy.default(this.value)
+                   .map(n => n.value)
+                   .map(ch => String.fromCharCode(ch))
+                   .join('');
+    }
+    summary() {
+        return Lazy.default(this.value)
+                   .map(n => n.value)
+                   .map(ch => ofCharCode(ch))
+                   .join('');
+    }
+    repr() {
+        let [ea_x, value_s] = [Ax.toHex(this.address), this.summary()];
+        return `[${ea_x}] <${this.classname}> : "${value_s}"`;
+    }
+}
+
+export class Jszwstring extends Jtarray {
+    static typename() { return 'Jszwstring'; }
+    get Type() { return Juint16; }
     isTerminator(object) {
         return object.value == 0;
     }
