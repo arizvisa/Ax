@@ -260,6 +260,36 @@ export class Jpointer extends Jatomicu {
     }
 }
 
+// FIXME: allow one to specify their own `calculate` method.
+export function DefinePointer(type, name=undefined) {
+    const realname = `Pointer(${('typename' in type)? type.typename() : type})`;
+
+    let type_;
+    if (type.prototype instanceof Jtype)
+        type_ = (T) => type;
+    else if (typeof object == "function")
+        type_ = (T) => type(T);
+    else
+        throw new errors.ArgumentTypeError("object");
+
+    let name_;
+    if (typeof name == "string")
+        name_ = (T) => name;
+    else if (typeof name == "function")
+        name_ = (T) => name(T);
+    else if (typeof name == "undefined")
+        name_ = (T) => `DynamicArray(${T.Type.typename()}, ${T.Length})`;
+    else
+        throw new errors.ArgumentTypeError("name");
+
+    class DynamicPointer extends Jpointer {
+        static typename() { return realname; }
+        get classname() { return name_(this); }
+        get Type() { return type_(this); }
+    }
+    return DynamicPointer;
+}
+
 export class Jcontainer extends Jtype {
     static typename() { return 'Jcontainer'; }
 
@@ -341,7 +371,7 @@ export class Jarray extends Jcontainer {
 }
 
 export function DefineArray(object, length, name=undefined) {
-    let realname = `DynamicArray(${('typename' in object)? object.typename() : object}, ${(typeof length == "number")? length : '...'})`;
+    const realname = `DynamicArray(${('typename' in object)? object.typename() : object}, ${(typeof length == "number")? length : '...'})`;
 
     let object_;
     if (object.prototype instanceof Jtype)
