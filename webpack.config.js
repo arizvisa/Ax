@@ -37,6 +37,7 @@ module.exports = {
               debug: true,
               eqeqeq: false,
               '-W018' : true,
+              '-W069' : true,
             },
           },
         ],
