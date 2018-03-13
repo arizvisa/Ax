@@ -130,15 +130,12 @@ export class Jatomic extends Jtype {
         throw new errors.PropertyNotImplementedError('value');
     }
     /* Atomic types are constant-sized as well. */
-    get size() {
+    size() {
         return this.Size;
-    }
-    set size(n) {
-        throw new this.ProtectedMemberError('size');
     }
     /* regular methods */
     bytes() {
-        let [integral, cb] = [this.value, this.size];
+        let [integral, cb] = [this.value, this.size()];
         let res = [];
         while (cb--) {
             res.push(integral % 256);
@@ -147,7 +144,7 @@ export class Jatomic extends Jtype {
         return res;
     }
     serialize() {
-        let [integral, cb] = [this.value, this.size];
+        let [integral, cb] = [this.value, this.size()];
         let res = [];
         while (cb--) {
             let ch = integral % 256;
@@ -158,7 +155,7 @@ export class Jatomic extends Jtype {
                    .join('');
     }
     dump() {
-        const value = Ax.load(this.address, this.size);
+        const value = Ax.load(this.address, this.size());
         return Lazy.default(value)
                    .map(n => Ax.toHex(n))
                    .join(' ');
@@ -178,7 +175,7 @@ export class Jatomic extends Jtype {
 export class Jatomicu extends Jatomic {
     static typename() { return 'Jatomicu'; }
     get value() {
-        let [ofs, cb] = [this.address, this.size];
+        let [ofs, cb] = [this.address, this.size()];
         switch (cb) {
             case 1:
                 return Ax.loadui(ofs, 1);
@@ -207,7 +204,7 @@ export class Jatomicu extends Jatomic {
 export class Jatomics extends Jatomic {
     static typename() { return 'Jatomics'; }
     get value() {
-        let [ofs, cb] = [this.address, this.size];
+        let [ofs, cb] = [this.address, this.size()];
         switch (cb) {
             case 1:
                 return Ax.loadsi(ofs, 1);
@@ -299,16 +296,14 @@ export class Jcontainer extends Jtype {
     /* Container types are always honest about their length... */
     get length() { return this._value.length; }
     set length(n) { throw new this.ProtectedMemberError('length'); }
-    /* ...and also their size. */
-    get size() {
-        return this._value.reduce((total, instance) => total + instance.size, 0);
-    }
-    set size(n) { throw new this.ProtectedMemberError('size'); }
 
     constructor(...args) {
         super(...args);
         this._value = [];
         this._indices = {};
+    }
+    size() {
+        return this._value.reduce((total, instance) => total + instance.size(), 0);
     }
     bytes() {
         const value = this._value;
@@ -330,7 +325,7 @@ export class Jcontainer extends Jtype {
         return this._value[index];
     }
     dump() {
-        const value = Ax.load(this.address, this.size);
+        const value = Ax.load(this.address, this.size());
         return Lazy.default(value)
                    .map(n => Ax.toHex(n))
                    .join(' ');
@@ -364,7 +359,7 @@ export class Jarray extends Jcontainer {
             let res = this.new(object, ea);
             indices[value.length] = value.length;
             value.push(res);
-            ea += res.size;
+            ea += res.size();
             count -= 1;
         }
     }
@@ -425,7 +420,7 @@ export class Jstruct extends Jcontainer {
                 let res = this.new(type, ea);
                 indices[name] = value.length;
                 value.push(res);
-                ea += res.size;
+                ea += res.size();
             }
         );
     }
@@ -433,14 +428,23 @@ export class Jstruct extends Jcontainer {
         const fields = this.Fields;
         let [ea, value] = [this.address, this.value];
 
-        let result = [];
-        result.push(`<${this.classname}>`);
-        for (let i=0; i < value.length; i++) {
+        let result = [`<${this.classname}>`];
+        for (let i = 0; i < value.length; i++) {
             let [ea_x, [name, _], val] = [Ax.toHex(ea), fields[i], value[i]];
             result.push(`[${ea_x}] "${name}" <${val.classname}> : ${val.summary()}`);
-            ea += val.size;
+            ea += val.size();
         }
         return result.join('\n');
+    }
+    * iterfields() {
+        for (const [k, _] of this.Fields)
+            yield k;
+    }
+    fields() {
+        let res = [];
+        for (let k of this.iterfields())
+            res.push(res, k);
+        return res;
     }
 }
 
@@ -493,7 +497,7 @@ export class Jtarray extends Jcontainer {
             res = this.new(object, ea);
             indices[value.length] = value.length;
             value.push(res);
-            ea += res.size;
+            ea += res.size();
         } while (!this.isTerminator(res));
     }
 }
