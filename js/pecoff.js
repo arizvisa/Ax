@@ -1,5 +1,5 @@
+import * as Ax from 'ax';
 import {Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct, Jtarray, Jstring, Jszstring, Jpointer} from './jtypes';
-import {toHex, ofHex} from './ax';
 
 import * as L from 'loglevel';
 const Log = L.getLogger('pecoff');
@@ -118,7 +118,7 @@ export class IMAGE_DATA_DIRECTORY extends Jstruct {
     static typename() { return 'IMAGE_DATA_DIRECTORY'; }
     get Type() {
         let ea = this.address;
-        Log.debug(`Ignoring untyped pointer for field Address in IMAGE_DATA_DIRECTORY(${toHex(ea)}).`);
+        Log.debug(`Ignoring untyped pointer for field Address in IMAGE_DATA_DIRECTORY(${Ax.toHex(ea)}).`);
         return Juint32;
     }
     get Fields() {

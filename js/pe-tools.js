@@ -1,6 +1,4 @@
-import { Ax, toHex, jsbreakpoint } from './ax';
-import { Jarray, Jstruct } from './jtypes';
-import { IMAGE_DOS_HEADER, IMAGE_NT_HEADER, IMAGE_IMPORT_DIRECTORY, IMAGE_EXPORT_DIRECTORY } from './pecoff';
+import * as pecoff from './pecoff';
 
 import * as L from 'loglevel';
 const Log = L.getLogger('pe-tools');
@@ -33,11 +31,11 @@ Err.create({
 
 /* Miscellaneous tools for dealing with Pecoff files */
 export function loadHeader(imagebase) {
-    let dosHeader = new IMAGE_DOS_HEADER(imagebase);
+    let dosHeader = new pecoff.IMAGE_DOS_HEADER(imagebase);
 
     // identify the PE header
     let pebase = imagebase + dosHeader.field('e_lfanew').int();
-    let res = dosHeader.new(IMAGE_NT_HEADER, pebase);
+    let res = dosHeader.new(pecoff.IMAGE_NT_HEADER, pebase);
 
     return res;
 }
@@ -46,7 +44,7 @@ export function loadImportTable(imagebase, pe) {
     let dd = pe.field('DataDirectory');
     let entry = dd.field(1);
     if (entry.field('Address').int())
-        return entry.new(IMAGE_IMPORT_DIRECTORY, imagebase + entry.field('Address').int());
+        return entry.new(pecoff.IMAGE_IMPORT_DIRECTORY, imagebase + entry.field('Address').int());
     throw new errors.ImportTableMissingError();     // FIXME: store some useful information
 }
 
@@ -54,7 +52,7 @@ export function loadExportTable(imagebase, pe) {
     let dd = pe.field('DataDirectory');
     let entry = dd.field(0);
     if (entry.field('Address').int())
-        return entry.new(IMAGE_EXPORT_DIRECTORY, imagebase + entry.field('Address').int());
+        return entry.new(pecoff.IMAGE_EXPORT_DIRECTORY, imagebase + entry.field('Address').int());
     throw new errors.ExportTableMissingError();     // FIXME: store some useful information
 }
 
@@ -107,9 +105,9 @@ export function GetModuleExports(imagebase) {
     const [aof, aon, aono] = [et.field('AddressOfFunctions').d, et.field('AddressOfNames').d, et.field('AddressOfNameOrdinals').d];
 
     let res = [];
-    for (let i = 0; i < aof.length; i++) {
-        let name = (i < aon.length)? aon.field(i).d.serialize().slice(0, -1) : undefined;
-        res.push([name, aof.field(i).int() + imagebase]);
+    for (let i = 0; i < aono.length; i++) {
+        const [name, index] = [aon.field(i).d.str(), aono.field(i).int()];
+        res.push([name, aof.field(index).int() + imagebase]);
     }
     return res;
 }

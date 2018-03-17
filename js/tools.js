@@ -1,6 +1,8 @@
-import { ofHex, toHex, Ax } from './ax';
-import { PEB } from './ndk-pstypes';
-import { GetModuleImports, GetModuleExports } from './pe-tools';
+import * as Ax from 'ax';
+import * as pstypes from './ndk-pstypes';
+import * as pe from './pe-tools';
+import * as J from 'jtypes';
+
 const R = require('ramda');
 
 import * as L from 'loglevel';
@@ -34,7 +36,7 @@ export function ScanForExecutables(start, end) {
                .toArray();
 }
 
-function _ScanForExecutables(start=0x1000, end=0x7fffffff) {
+function _ScanForExecutables(start=Ax.PageSize, end=0x7fffffff) {
     let address = start;
 
     return function scans() {
@@ -45,13 +47,13 @@ function _ScanForExecutables(start=0x1000, end=0x7fffffff) {
             let [mbase, msize] = [Ax.mem_baseaddress(address), Ax.mem_size(address)];
 
             if (sizeQ([mbase, sizeQ(msize)])) {
-                address = address + 0x1000;
+                address = address + Ax.PageSize;
                 continue;
             }
 
             // check that first word matches our header fingerprint
-            let res = Ax.uint16_t(address);
-            if (fingerprintQ(res)) {
+            let res = new J.Juint16(address);
+            if (fingerprintQ(res.int())) {
                 let ret_addr = address;
                 address = address + msize;
                 return ret_addr;
@@ -79,15 +81,15 @@ export function ScanForExecutablesUnsafe(start, end) {
                .toArray();
 }
 
-function _ScanForExecutablesUnsafe(start=0x1000, end=0x7fffffff) {
-    let [address, msize] = [start, 0x1000];
+function _ScanForExecutablesUnsafe(start=Ax.PageSize, end=0x7fffffff) {
+    let [address, msize] = [start, Ax.PageSize];
 
     return function scans() {
         const fingerprintQ = R.allPass([R.is(Number), R.equals(0x5A4D)]);
         while (address < end) {
             // check that first word matches our header fingerprint
-            let res = Ax.uint16_t(address);
-            if (fingerprintQ(res)) {
+            let res = new J.Juint16(address);
+            if (fingerprintQ(res.int())) {
                 let ret_addr = address;
                 address = address + msize;
                 return ret_addr;
@@ -111,14 +113,14 @@ function _ScanForExecutablesUnsafe(start=0x1000, end=0x7fffffff) {
 
     Lazy.default([0x23e0000])
         .map( addr  => ScanForBytes(bytes, addr, addr+500) )
-        .map( addrs => Lazy.default(addrs).map(toHex).toArray() )
-        .each(console.log);
+        .map( addrs => Lazy.default(addrs).map(Ax.toHex).toArray() )
+        .each(Log.debug);
  */
 export function ScanForBytes(bytes, start, end) {
     return Lazy.range(start, end)
                .filter(function (addr) {
                     let found = Lazy.range(addr, addr + bytes.length)
-                                    .map( addr => Ax.uint8_t(addr) )
+                                    .map( addr => (new J.Juint8(addr)).int() )
                                     .zip(bytes)
                                     .every( z => z[0] == z[1]);
 
@@ -133,7 +135,7 @@ export function ScanForBytes(bytes, start, end) {
  *
     let bytes = ReadBytes(0x1230000, 10);
 
-    console.log(Lazy.default(bytes).map(toHex).toArray());
+    Log.debug(Lazy.default(bytes).map(Ax.toHex).toArray());
     4d,5a,90,0,3,0,0,0
  */
 
@@ -151,7 +153,7 @@ export function ReadBytes(ea, n) {
  *
     let words = ReadWords(0x1230000, 10);
 
-    console.log(Lazy.default(words).map(toHex).toArray());
+    Log.debug(Lazy.default(words).map(Ax.toHex).toArray());
     5a4d,90,3,0,4,0,ffff,0
  */
 export function ReadWords(ea, n) {
@@ -168,7 +170,7 @@ export function ReadWords(ea, n) {
  *
     let dwords = ReadDwords(0x1230000, 10);
 
-    console.log(Lazy.default(dwords).map(toHex).toArray());
+    Log.debug(Lazy.default(dwords).map(Ax.toHex).toArray());
     905a4d,3,4,ffff,b8,0,40,0
  */
 export function ReadDwords(ea, n) {
@@ -185,7 +187,7 @@ export function ReadDwords(ea, n) {
  *
     let qwords = ReadQwords(0x1230000, 10);
 
-    console.log(Lazy.default(qwords).map(toHex).toArray());
+    Log.debug(Lazy.default(qwords).map(Ax.toHex).toArray());
     300905a4d,ffff00000004,b8,40,0,0,0,f000000000
  */
 export function ReadQwords(ea, n) {
@@ -211,28 +213,8 @@ function _ReadBytes(ea, bytes=1) {
     let address = ea;
 
     return function reads() {
-        let res;
-        switch(bytes) {
-            case 1:
-                res = Ax.uint8_t(address);
-                address = address + 1;
-                break;
-            case 2:
-                res = Ax.uint16_t(address);
-                address = address + 2;
-                break;
-            case 4:
-                res = Ax.uint32_t(address);
-                address = address + 4;
-                break;
-            case 8:
-                res = Ax.uint64_t(address);
-                address = address + 8;
-                break;
-            default:
-                throw "[_ReadBytes] Received unknown byte length.";
-        }
-
+        const res = Ax.loadui(address, bytes);
+        address = address + bytes;
         return res;
     };
 }
@@ -251,10 +233,10 @@ function _ReadBytes(ea, bytes=1) {
 function _WriteData(ea, new_bytes, bytes=1) {
     Lazy.range(ea, ea + (new_bytes.length)*bytes, bytes)
         .zip(new_bytes)
-        .each( function(z) {
-            let [addr, b] = [z[0], z[1]];
-            console.log(`Writing ${bytes} bytes: Addr: ${addr} (0x${toHex(addr)}), New Bytes: ${b} (0x${toHex(b)})`);
-            Ax.store(addr, bytes, b);
+        .each( z => {
+            const [addr, b] = [z[0], z[1]];
+            Log.debug(`Writing ${bytes} bytes: Addr: ${addr} (0x${Ax.toHex(addr)}), New Bytes: ${b} (0x${Ax.toHex(b)})`);
+            Ax.storeui(addr, bytes, b);
         });
 }
 
@@ -334,18 +316,18 @@ export function Clock(F, ...x) {
  * Yield the address of each module stored in the .Ldr field of the PEB
  * at the specified `pebaddr`.
  *
- * Example: Iterate through all modules in PEB and output their name
+ * Example: Iterate through all modules in PEB.Ldr and output their name
  *          and base address.
  *
  *   let pebaddress = 0x7efde000;
  *   for (let m of WalkLdr(pebaddress)) {
  *       let [ea, cb] = [m.field('DllBase'), m.field('SizeOfImage')];
  *       let [ea_x, cb_x] = [ea.int().toString(16), cb.int().toString(16)];
- *       console.log(`${ea_x}+${cb_x} : ${m.field('BaseDllName').str()} : ${m.field('FullDllName').str()}`);
+ *       Log.debug(`${ea_x}+${cb_x} : ${m.field('BaseDllName').str()} : ${m.field('FullDllName').str()}`);
  *   }
  */
 export function* WalkLdr(pebaddr) {
-    let peb = new PEB(pebaddr);
+    let peb = new pstypes.PEB(pebaddr);
 
     let ldrp = peb.field('Ldr');
     let ldr = ldrp.d;
@@ -372,24 +354,53 @@ export function* WalkLdr(pebaddr) {
  *       kernel32_address,
  *       'ntdll.dll!NtAllocateVirtualMemory'
  *   );
- *   console.log(`&NtAllocateVirtualMemory: ${ea.toString(16)});
+ *   Log.debug(`&NtAllocateVirtualMemory: ${ea.toString(16)});
  */
 export function GetImportAddress(handle, symbol) {
     // XXX: Ordinals are not supported due to forwarded RVA not being
-    //      implemented by GetModuleImports..
+    //      implemented by pe.GetModuleImports..
     let [module, name] = symbol.split('!');
 
     // Walk through the imports in the specified module
-    let list = GetModuleImports(handle, module);
+    let list = pe.GetModuleImports(handle, module);
     for (let i = 0; i < list.length; i++) {
         let [hint, res] = list[i];
         if (hint[1] == name)
             return res;
-        Log.debug(`GetImportAddress(0x${toHex(handle)}, "${symbol}") : Skipping Symbol due to non-match of ${name} : ${hint}`);
+        Log.debug(`GetImportAddress(0x${Ax.toHex(handle)}, "${symbol}") : Skipping Symbol due to non-match of ${name} : ${hint}`);
     }
 
     // Okay, we didn't find shit...
-    Log.warn(`GetImportAddress(0x${toHex(handle)}, "${symbol}") : Unable to locate symbol in module's import table`);
+    Log.warn(`GetImportAddress(0x${Ax.toHex(handle)}, "${symbol}") : Unable to locate symbol in module's import table`);
+    throw new errors.SymbolNotFoundError(symbol);
+}
+
+/*
+ * Given a module handle/address and an export name, return it's
+ * function address by walking the export table.
+ *
+ * Example: Using the kernel32.dll module, return the address of
+ *          the RtlCaptureContext function.
+ *
+ *   let kernel32_address = 0x6b800000
+ *   let ea = GetExportAddress(
+ *       kernel32_address,
+ *       'RtlCaptureContext'
+ *   );
+ *   Log.debug(`&kernel32!RtlCaptureContext: ${ea.toString(16)});
+ */
+export function GetExportAddress(handle, name) {
+    // Get the exports from the PE at the given handle
+    let exports = pe.GetModuleExports(handle);
+    for (let i = 0; i < exports.length; i++) {
+        let [n, res] = exports[i];
+        if (n == name)
+            return res;
+        Log.debug(`GetExportAddress(0x${Ax.toHex(handle)}, "${name}") : Skipping symbol due to non-match of ${name} : ${n}`);
+    }
+
+    // Nothing found!
+    Log.warn(`GetExportAddress(0x${Ax.toHex(handle)}, "${name}") : Unable to locate symbol in module.`);
     throw new errors.SymbolNotFoundError(symbol);
 }
 
@@ -403,7 +414,7 @@ export function GetImportAddress(handle, symbol) {
  *       pebaddr,
  *       'kernelbase.dll!VirtualProtectEx'
  *   );
- *   console.log(`&kernelbase!VirtualProtectEx: ${ea.toString(16)});
+ *   Log.debug(`&kernelbase!VirtualProtectEx: ${ea.toString(16)});
  */
 export function GetProcAddress(pebaddress, symbol) {
     let [module, name] = symbol.split('!');
@@ -417,23 +428,13 @@ export function GetProcAddress(pebaddress, symbol) {
             dllbase = m.field('DllBase').int();
             break;
         }
-        Log.debug(`GetProcAddress(0x${toHex(pebaddress)}, "${symbol}") : Skipping module due to non-match of ${module} : ${sn} ${ln}`);
+        Log.debug(`GetProcAddress(0x${Ax.toHex(pebaddress)}, "${symbol}") : Skipping module due to non-match of ${module} : ${sn} ${ln}`);
     }
     if (typeof dllbase == "undefined")
         throw new errors.SymbolNotFoundError(symbol);
 
     // Now we can find the symbol index.
-    let exports = GetModuleExports(dllbase);
-    for (let i = 0; i < exports.length; i++) {
-        let [n, res] = exports[i];
-        if (n == name)
-            return res;
-        Log.debug(`GetProcAddress(0x${toHex(pebaddress)}, "${symbol}") : Skipping symbol due to non-match of ${name} : ${n}`);
-    }
-
-    // Nothing found!
-    Log.warn(`GetProcAddress(0x${toHex(pebaddress)}, "${symbol}") : Unable to locate ${symbol} in peb.ldr`);
-    throw new errors.SymbolNotFoundError(symbol);
+    return GetExportAddress(dllbase, name);
 }
 
 /*
@@ -465,7 +466,7 @@ export function Crc32(crc, buff) {
  *
  * Example - Find the crc 0xdeadbeef of the first 250 bytes of addresses in `exes`
  *  let prot_crc = 0xdeadbeef;
- *  console.log('kernel32', toHex(FindModule(exes, 250, prot_crc)));
+ *  Log.debug('kernel32', Ax.toHex(FindModule(exes, 250, prot_crc)));
  *
  * Return - Address of the target CRC if found or undefined otherwise
  */

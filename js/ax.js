@@ -5,8 +5,9 @@ const errors = Err.default;
 import * as L from 'loglevel';
 const Log = L.getLogger('ax');
 
-/* Constants */
 const MAX_SAFE_INTEGER_BITS = 53;   // Standard ECMA-252 Ed-5.1 Sec-8.5
+export const PageSize = 0x1000;
+export const PageAlign = (ea) => ea & ~(PageSize - 1);
 
 /* Error message types native memory interaction. */
 Err.create({
@@ -30,7 +31,7 @@ export var Ax = new ActiveXObject('Ax.Leaker.1');
 
 // numerical functions
 export function toHex(n) {
-    // TODO: use math.log to figure out which power of 2 this number
+    // TODO: use Math.log to figure out which power of 2 this number
     //       fits within, and then pad it with 0s.
     return n.toString(16);
 }
@@ -47,8 +48,20 @@ export function breakpoint() {
     return Ax.breakpoint();
 }
 
+export function disassemble(address, count) {
+    return Ax.disassemble(address, count);
+}
+
 export function dump(address, size, type) {
     return Ax.dump(address, size, type);
+}
+
+export function getlasterror() {
+    return Ax.getlasterror();
+}
+
+export function geterrormessage(errCode) {
+    return Ax.geterrormessage(errCode);
 }
 
 export function getProcessPeb() {
@@ -61,6 +74,26 @@ export function ansistring(address) {
 
 export function unicodestring(address) {
     return Ax.unicodestring(address);
+}
+
+export function mem_baseaddress(address) {
+    return Ax.mem_baseaddress(address);
+}
+
+export function mem_size(address) {
+    return Ax.mem_size(address);
+}
+
+export function mem_state(address) {
+    return Ax.mem_state(address);
+}
+
+export function mem_protect(address) {
+    return Ax.mem_protect(address);
+}
+
+export function mem_type(address) {
+    return Ax.mem_type(address);
 }
 
 /*
