@@ -345,51 +345,168 @@ function loadi(address, size) {
 }
 
 /*
- * Extract `count` bits from `number` starting at the specified `bit`.
+ * Extract `count` bits from `result` starting at the specified `bit`.
  */
-function extract(number, bit, count) {
-    const divisor = Math.pow(2, count);
-    const shift = Math.pow(2, bit);
-    let res = Math.trunc(number / shift);
+export function unpack(result, bit, count) {
+    let [shift, divisor] = [Math.pow(2, bit), Math.pow(2, count)];
+    let res = Math.trunc(result / shift);
     return res - (Math.trunc(res / divisor) * divisor);
 }
 
 /*
- * Store a floating point number of `size` bytes from the specified `address`.
+ * Write `count` bits from `value` into `result` starting at the specified `bit`.
  */
-export function storef(address, size, number) {
-    // Determine the size of the exponent and the mantissa based on the number of bytes.
-    let info;
+export function pack(result, bit, count, value) {
+    if (0 <= value < Math.pow(2, count))
+        Log.warn(`Requested value (${value}) does not fit within the specified number of bits (${count}).`);
+
+    const truncate = (n, op) => Math.trunc(n / op) * op;
+
+    const [left, right] = [Math.pow(2, bit + count), Math.pow(2, bit)];
+
+    let res = truncate(result, left) + (result - truncate(result, right));
+    return res + value;
+}
+
+/*
+ * Decode a `number` from the IEEE754 format described by `components` and return a number.
+ *
+ * The `components` parameter is an object with the following fields:
+ * {
+ *     sign:     // the number of bits to use for the sign flag
+ *     exponent: // the number of bits to use for the exponent
+ *     mantissa: // the number of bits to use for the fractional component
+ * }
+ */
+export function of_IEEE754(number, components) {
+    const bias = Math.pow(2, components['exponent']) / 2 - 1;
+    Log.debug(`bias: ${bias}`);
+
+    // FIXME: rewrite these to not use unpack().
+    const fraction = unpack(number, 0, components['mantissa']);
+    const exp = unpack(number, components['mantissa'], components['exponent']);
+    const sf = unpack(number, components['mantissa'] + components['exponent'], components['sign']);
+
+    Log.debug(`sf: ${sf.toString(2)}`);
+    Log.debug(`exp: ${exp.toString(2)}`);
+    Log.debug(`fraction: ${fraction.toString(2)}`);
+
+    if (0 < exp < Math.pow(2, components['exponent']) - 1) {
+        let s = sf? -1 : +1;
+        let e = exp - bias;
+        let m = 1.0 + (fraction / Math.pow(2, components['mantissa']));
+        return m * s * Math.pow(2, e);
+
+    } else if (fraction == 0.0 && exp == Math.pow(2, components['exponent']) - 1)
+        return sf? -Infinity : +Infinity;
+
+    else if (fraction != 0.0 && (exp == 0 || exp == Math.pow(2, components['exponent']) - 1))
+        return sf? -NaN : NaN;
+
+    else if (fraction == 0 && exp == 0)
+        return sf? -0.0 : +0.0;
+
+    return undefined;
+}
+
+/*
+ * Encode a `number` with the specified IEEE754 `components` and return an integer.
+ *
+ * The `components` parameter is an object with the following fields:
+ * {
+ *     sign:     // the number of bits to use for the sign flag
+ *     exponent: // the number of bits to use for the exponent
+ *     mantissa: // the number of bits to use for the fractional component
+ * }
+ */
+export function to_IEEE754(number, components) {
+    const bias = Math.pow(2, components['exponent']) / 2 - 1;
+    Log.debug(`bias: ${bias}`);
+
+    // figure out what number type the user specified.
+    let sf, exp, fr;
+    if (isNaN(number)) {
+        [sf, exp, fr] = [0, Math.pow(2, components['exponent']) - 1, Math.pow(2, components['mantissa']) - 1];
+
+    } else if (!isFinite(number)) {
+        [sf, exp, fr] = [(number < 0.0)? 1 : 0, Math.pow(2, components['exponent']) - 1, 0];
+
+    } else if (number == 0.0 && Math.atan2(number, number) == 0.0) {
+        [sf, exp, fr] = [0, 0, 0];
+
+    } else if (number == 0.0 && Math.atan2(number, number) < 0.0) {
+        [sf, exp, fr] = [1, 0, 0];
+
+    } else {
+        const N = Math.abs(number);
+
+        // extract the exponent and mantissa
+        let e = Math.ceil(Math.log(N) * Math.LOG2E);
+        let m = N / Math.pow(2, e);
+        Log.debug(`>e: ${e}`);
+        Log.debug(`>m: ${m}`);
+
+        // grab the sign flag
+        sf = (number < 0)? 1 : 0;
+
+        // adjust the exponent and remove the implicit bit
+        exp = e + bias - 1;
+        if (exp != 0)
+            m = m * 2.0 - 1.0;
+
+        // convert the fractional mantissa into a binary number
+        fr = Math.trunc(m * Math.pow(2, components['mantissa']));
+    }
+
+    Log.debug(`sf: ${sf.toString(2)}`);
+    Log.debug(`exp: ${exp.toString(2)}`);
+    Log.debug(`fraction: ${fr.toString(2)}`);
+
+    // put all the components together
+    let res;
+    res = components['sign']? sf : 0;
+    res = (res * Math.pow(2, components['exponent'])) + exp;
+    res = (res * Math.pow(2, components['mantissa'])) + fr;
+    return res;
+}
+
+// lookup the IEEE754 format for a given size
+function get_IEEE754(size) {
+    let res;
     switch (size) {
         case 2:
-            info = {sign: 1, exponent: 5, fractional: 10};
+            res = {sign: 1, exponent: 5, mantissa: 10};
             break;
         case 4:
-            info = {sign: 1, exponent: 8, fractional: 23};
+            res = {sign: 1, exponent: 8, mantissa: 23};
             break;
         case 8:
-            info = {sign: 1, exponent: 11, fractional: 52};
+            res = {sign: 1, exponent: 11, mantissa: 52};
+            break;
+        case 16:
+            res = {sign: 1, exponent: 15, mantissa: 113};
+            break;
+        case 32:
+            res = {sign: 1, exponent: 19, mantissa: 237};
             break;
     }
-    throw new errors.NotImplementedError(`storef(${address}, ${size}, ${number} : Function not implemented yet!`);
+    throw new errors.InvalidSizeError(size);
+}
+
+/*
+ * Store the floating point `number` of `size` bytes to the specified `address`.
+ */
+export function storef(address, size, number) {
+    const format = get_IEEE754_format(size);
+    const res = to_IEEE754(number, format);
+    return storeui(address, size, res);
 }
 
 /*
  * Load a floating point number of `size` bytes from the specified `address`.
  */
 export function loadf(address, size) {
-    // Determine the size of the exponent and the mantissa based on the number of bytes.
-    let info;
-    switch (size) {
-        case 2:
-            info = {sign: 1, exponent: 5, fractional: 10};
-            break;
-        case 4:
-            info = {sign: 1, exponent: 8, fractional: 23};
-            break;
-        case 8:
-            info = {sign: 1, exponent: 11, fractional: 52};
-            break;
-    }
-    throw new errors.NotImplementedError(`loadf(${address}, ${size}, ${number} : Function not implemented yet!`);
+    const format = get_IEEE754_format(size);
+    const res = loadui(address, size);
+    return of_IEEE754(res, format);
 }

@@ -232,6 +232,32 @@ export class Jatomics extends Jatomic {
     }
 }
 
+export class Jfloat extends Jatomicu {
+    static typename() { return 'Jfloat'; }
+    get Components() {
+        // [signflag, exponent, mantissa]
+        throw new errors.UndefinedFieldError('Components');
+    }
+    get Size() {
+        const [sf, exp, fr] = this.Components;
+        let res = sf + exp + fr;
+        return Math.trunc(res / 8);
+    }
+    summary() {
+        const [integral, real] = [this.int(), this.float()];
+        return `${real} (${Ax.toHex(integral)})`;
+    }
+    float() {
+        const [sf, exp, fr] = this.Components;
+        const format = {
+            sign: sf,
+            exponent: exp,
+            mantissa: fr,
+        };
+        return Ax.of_IEEE754(this.value, format);
+    }
+}
+
 export class Jpointer extends Jatomicu {
     static typename() { return 'Jtype*'; }
     get Size() {
@@ -600,36 +626,68 @@ export class Jszwstring extends Jtarray {
     }
 }
 
-/* Atomic types */
+/* Atomic types (unsigned) */
 export class Juint8 extends Jatomicu {
-    static typename() { return 'Juint8'; }
+    static typename() { return 'uint8_t'; }
     get Size() { return 1; }
 }
 export class Juint16 extends Jatomicu {
-    static typename() { return 'Juint16'; }
+    static typename() { return 'uint16_t'; }
     get Size() { return 2; }
 }
 export class Juint32 extends Jatomicu {
-    static typename() { return 'Juint32'; }
+    static typename() { return 'uint32_t'; }
     get Size() { return 4; }
 }
 export class Juint64 extends Jatomicu {
-    static typename() { return 'Juint64'; }
+    static typename() { return 'uint64_t'; }
     get Size() { return 8; }
 }
+export class Juint128 extends Jatomicu {
+    static typename() { return 'uint128_t'; }
+    get Size() { return 16; }
+}
+
+/* Atomic types (signed) */
 export class Jsint8 extends Jatomics {
-    static typename() { return 'Jsint8'; }
+    static typename() { return 'sint8_t'; }
     get Size() { return 1; }
 }
 export class Jsint16 extends Jatomics {
-    static typename() { return 'Jsint16'; }
+    static typename() { return 'sint16_t'; }
     get Size() { return 2; }
 }
 export class Jsint32 extends Jatomics {
-    static typename() { return 'Jsint32'; }
+    static typename() { return 'sint32_t'; }
     get Size() { return 4; }
 }
 export class Jsint64 extends Jatomics {
-    static typename() { return 'Jsint64'; }
+    static typename() { return 'sint64_t'; }
     get Size() { return 8; }
+}
+export class Jsint128 extends Jatomics {
+    static typename() { return 'sint128_t'; }
+    get Size() { return 16; }
+}
+
+/* Atomic types (floating-point) */
+export class Jbinary16 extends Jfloat {
+    static typename() { return '__fp16'; }
+    get Components() { return [1, 5, 10]; }
+}
+export class Jbinary32 extends Jfloat {
+    static typename() { return 'float'; }
+    get Components() { return [1, 8, 23]; }
+}
+export class Jbinary64 extends Jfloat {
+    static typename() { return 'double'; }
+    get Components() { return [1, 11, 52]; }
+}
+export class Jbinary128 extends Jfloat {
+    static typename() { return '__float128'; }
+    get Components() { return [1, 15, 113]; }
+}
+export class Jbinary256 extends Jfloat {
+    static typename() { return '__float256'; }
+    get Components() { return [1, 19, 237]; }
 }
