@@ -235,12 +235,13 @@ function storei(address, size, integral) {
     function _storeui(address, size, integral) {
         // Try and store `integral` to address so we can figure out what was missed.
         let res = fstore(address, size, integral);
-        if (!res)
+        if (res == size)
             return res;
 
+        // XXX: This code feels fishy. Re-work this logic someday...
         // Recurse for any leftover parts of the integer.
         let ni = _storeui(address + res, size - res, Math.trunc(integral / Math.pow(2, 8*res)));
-        if (ni > 0)                     // XXX: Can't tail-recurse because we need to check
+        if (ni == size - res)           // XXX: Can't tail-recurse because we need to check
             return res + ni;            //      for an infinite loop here..
         throw new errors.StoreError(`_storeui(${address}, ${size}, ${integral}) : Unable to write ${size - res} bytes to ${address + res}.`);
     }
