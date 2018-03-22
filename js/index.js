@@ -7,9 +7,6 @@ import * as pecoff from './pecoff';
 import * as pe from './pe-tools';
 import * as tools from './tools';
 
-import * as R from 'ramda';
-import * as Lazy from 'lazy.js';
-
 import * as Err from 'errors';
 const errors = Err.default;
 
