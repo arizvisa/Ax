@@ -13,6 +13,12 @@ module.exports = {
     './js/index.js',
   ],
 
+  resolve: {
+    modules: [
+      path.resolve(__dirname, 'node_modules'),
+    ],
+  },
+
   output: {
     filename: 'webpack.js'
   },
