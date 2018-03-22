@@ -27,7 +27,7 @@ module.exports = {
     rules: [
       {
         test: /\.json$/,
-        loader: 'json-loader',
+        loader: require.resolve('json-loader'),
       },
       {
         test: /\.js$/,
@@ -35,7 +35,7 @@ module.exports = {
         exclude: /node_modules/,
         use: [
           {
-            loader: 'jshint-loader',
+            loader: require.resolve('jshint-loader'),
             options: {
               emitErrors: true,
               failOnHint: false,
@@ -56,11 +56,11 @@ module.exports = {
         ],
         use: [
           {
-            loader: 'babel-loader',
+            loader: require.resolve('babel-loader'),
             options: {
               presets: ['env'],
               plugins: [
-                ["babel-plugin-transform-builtin-extend", {
+                [require.resolve("babel-plugin-transform-builtin-extend"), {
                   globals: ["Error", "Array"],
                   approximate: true,
                 }],
