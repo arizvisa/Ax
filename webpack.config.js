@@ -8,9 +8,8 @@ module.exports = {
   },
 
   entry: [
-    'babel-polyfill',
     'error-polyfill',
-    './js/index.js',
+    path.resolve(__dirname, 'js', 'index.js'),
   ],
 
   resolve: {
@@ -58,10 +57,13 @@ module.exports = {
           {
             loader: require.resolve('babel-loader'),
             options: {
-              presets: ['env'],
+              presets: [
+                require.resolve('babel-preset-env'),
+              ],
               plugins: [
-                [require.resolve("babel-plugin-transform-builtin-extend"), {
-                  globals: ["Error", "Array"],
+                require.resolve('babel-plugin-transform-runtime'),
+                [require.resolve('babel-plugin-transform-builtin-extend'), {
+                  globals: ['Error', 'Array'],
                   approximate: true,
                 }],
               ],
@@ -74,8 +76,8 @@ module.exports = {
 
   plugins: [
     new HtmlWebpackPlugin({
-      template: './js/index.thtml',
-      filename: './index.html',
+      template: path.resolve(__dirname, 'js', 'index.thtml'),
+      filename: path.resolve(__dirname, 'index.html'),
       inject: 'head',
       showErrors: true,
     }),
