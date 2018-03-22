@@ -1,7 +1,7 @@
 import * as pecoff from './pecoff';
 
 import * as L from 'loglevel';
-const Log = L.getLogger('pe-tools');
+const Log = L.getLogger('Ax.pe-tools');
 
 import * as Err from 'errors';
 import './errors';

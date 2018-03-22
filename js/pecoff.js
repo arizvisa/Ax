@@ -2,7 +2,7 @@ import * as Ax from 'ax';
 import {Juint8, Juint16, Juint32, Juint64, Jarray, Jstruct, Jtarray, Jstring, Jszstring, Jpointer} from './jtypes';
 
 import * as L from 'loglevel';
-const Log = L.getLogger('pecoff');
+const Log = L.getLogger('Ax.pecoff');
 
 import * as Err from 'errors';
 const errors = Err.default;

@@ -15,7 +15,7 @@ const errors = Err.default;
 
 import * as L from 'loglevel';
 L.setLevel('trace');
-const Log = L.getLogger('index');
+const Log = L.getLogger('Ax.index');
 
 function main() {
 }

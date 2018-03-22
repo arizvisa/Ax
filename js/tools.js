@@ -6,7 +6,7 @@ import * as J from 'jtypes';
 const R = require('ramda');
 
 import * as L from 'loglevel';
-const Log = L.getLogger('tools');
+const Log = L.getLogger('Ax.tools');
 
 import * as Lazy from 'lazy.js';
 

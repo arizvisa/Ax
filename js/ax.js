@@ -3,7 +3,7 @@ import './errors';
 const errors = Err.default;
 
 import * as L from 'loglevel';
-const Log = L.getLogger('ax');
+const Log = L.getLogger('Ax.ax');
 
 const MAX_SAFE_INTEGER_BITS = 53;   // Standard ECMA-252 Ed-5.1 Sec-8.5
 export const PageSize = 0x1000;
