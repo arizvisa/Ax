@@ -1,7 +1,7 @@
-import * as Ax from 'ax';
+import * as Ax from './ax';
 import * as pstypes from './ndk-pstypes';
 import * as pe from './pe-tools';
-import * as J from 'jtypes';
+import * as J from './jtypes';
 
 const R = require('ramda');
 

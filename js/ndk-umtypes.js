@@ -1,14 +1,14 @@
 import * as Ax from './ax';
-import {Juint8, Juint16, Juint32, Juint64, Jstruct} from './jtypes';
+import * as J from './jtypes';
 
 /* Native (Ax) structure definitions */
-export class ANSI_STRING extends Jstruct {
+export class ANSI_STRING extends J.Jstruct {
     static typename() { return 'ANSI_STRING'; }
     get Fields() {
         return [
-            ['Length', Juint16],
-            ['MaximumLength', Juint16],
-            ['Buffer', Juint32],
+            ['Length', J.Juint16],
+            ['MaximumLength', J.Juint16],
+            ['Buffer', J.Juint32],
         ];
     }
     summary() {
@@ -29,13 +29,13 @@ export class ANSI_STRING extends Jstruct {
     }
 }
 
-export class UNICODE_STRING extends Jstruct {
+export class UNICODE_STRING extends J.Jstruct {
     static typename() { return 'UNICODE_STRING'; }
     get Fields() {
         return [
-            ['Length', Juint16],
-            ['MaximumLength', Juint16],
-            ['Buffer', Juint32],
+            ['Length', J.Juint16],
+            ['MaximumLength', J.Juint16],
+            ['Buffer', J.Juint32],
         ];
     }
     summary() {
