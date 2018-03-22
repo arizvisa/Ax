@@ -320,13 +320,13 @@ export function Clock(F, ...x) {
  *          and base address.
  *
  *   let pebaddress = 0x7efde000;
- *   for (let m of WalkLdr(pebaddress)) {
+ *   for (let m of LdrWalk(pebaddress)) {
  *       let [ea, cb] = [m.field('DllBase'), m.field('SizeOfImage')];
  *       let [ea_x, cb_x] = [ea.int().toString(16), cb.int().toString(16)];
  *       Log.debug(`${ea_x}+${cb_x} : ${m.field('BaseDllName').str()} : ${m.field('FullDllName').str()}`);
  *   }
  */
-export function* WalkLdr(pebaddr) {
+export function* LdrWalk(pebaddr) {
     let peb = new pstypes.PEB(pebaddr);
 
     let ldrp = peb.field('Ldr');
@@ -340,6 +340,36 @@ export function* WalkLdr(pebaddr) {
         res = res.field('InLoadOrderLinks').field('Flink');
     }
     return;
+}
+
+/*
+ * Walk through each entry in the PEB.Ldr returning the the base
+ * address for the first one that `crit(module)` returns true for.
+ *
+ * Example: Iterate through all modules in PEB.Ldr looking for ntdll.dll.
+ *
+ *   let pebaddress = 0x7efde000;
+ *   let ntdll_base = LdrFindModule(
+ *       pebaddress,
+ *       m => m.field('BaseDllName').str().toLowerCase() == 'ntdll.dll'
+ *   );
+ *
+ */
+export function LdrFindModule(peb, crit) {
+
+    // Walk through each module in the Ldr.
+    for (let m of LdrWalk(peb)) {
+        // Check to see if we found a module that matches our prefix.
+        if (crit(m))
+            return m.field('DllBase').int();
+
+        // Log any modules that we skipped
+        let [sn, ln] = [m.field('BaseDllName'), m.field('FullDllName')];
+        let [ea, cb] = [m.field('DllBase'), m.field('SizeOfImage')];
+        let [ea_x, cb_x] = [ea.int().toString(16), cb.int().toString(16)];
+        Log.debug(`LdrFindModule(${peb}, ...): Ignoring non-match : ${ea_x}+${cb_x} : ${sn.str()} : ${ln.str()}`);
+    }
+    throw new errors.ModuleNotFoundError();
 }
 
 /*
@@ -422,7 +452,7 @@ export function GetProcAddress(pebaddress, symbol) {
     // Find the correct module here first.
     const path_separator = '\\';
     let dllbase;
-    for (let m of WalkLdr(pebaddress)) {
+    for (let m of LdrWalk(pebaddress)) {
         let [sn, ln] = [m.field('BaseDllName').str(), m.field('FullDllName').str()];
         if (sn == module || ln.endsWith(`${path_separator}${module}`)) {
             dllbase = m.field('DllBase').int();
@@ -466,11 +496,11 @@ export function Crc32(crc, buff) {
  *
  * Example - Find the crc 0xdeadbeef of the first 250 bytes of addresses in `exes`
  *  let prot_crc = 0xdeadbeef;
- *  Log.debug('kernel32', Ax.toHex(FindModule(exes, 250, prot_crc)));
+ *  Log.debug('kernel32', Ax.toHex(CRCFindModule(exes, 250, prot_crc)));
  *
  * Return - Address of the target CRC if found or undefined otherwise
  */
-export function FindModule(addrs, num_bytes, target) {
+export function CRCFindModule(addrs, num_bytes, target) {
     let crcs = {};
     addrs.map( addr => [addr, ReadBytes(addr, num_bytes)])
          .map( args => {
