@@ -4,7 +4,6 @@ import * as Err from 'errors';
 const errors = Err.default;
 
 import * as L from 'loglevel';
-L.setLevel('warn');
 const Log = L.getLogger('ia32');
 
 Err.create({
