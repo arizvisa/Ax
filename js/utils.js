@@ -61,3 +61,14 @@ export function htmlescape(string) {
 export function dquote(string) {
     return JSON.stringify(string);
 }
+
+/* return a dummy object that uses the specified method to determine a property */
+export function dummyobject(missing) {
+    if (global.hasOwnProperty('Proxy'))
+        return new global.Proxy({}, {
+            get: (target, name) => missing(target, name),
+        });
+
+    // fall-back to just an empty object in case it wasn't polyfilled or anything..
+    return {};
+}
