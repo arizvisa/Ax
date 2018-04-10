@@ -1,5 +1,13 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head></head>
-    <body></body>
+    <body>
+        <div>
+            <div class="status" />
+        </div>
+        <div>
+            <input type="text" class="command" />
+            <input type="button" class="action" value="evaluate" />
+        </div>
+    </body>
 </html>
