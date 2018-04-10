@@ -1,4 +1,4 @@
-import * as Ax from './ax';
+import * as utils from './utils';
 import * as J from './jtypes';
 
 import * as L from 'loglevel';
@@ -118,7 +118,7 @@ export class IMAGE_DATA_DIRECTORY extends J.Jstruct {
     static typename() { return 'IMAGE_DATA_DIRECTORY'; }
     get Type() {
         let ea = this.address;
-        Log.debug(`Ignoring untyped pointer for field Address in IMAGE_DATA_DIRECTORY(${Ax.toHex(ea)}).`);
+        Log.debug(`Ignoring untyped pointer for field Address in IMAGE_DATA_DIRECTORY(${utils.toHex(ea)}).`);
         return J.Juint32;
     }
     get Fields() {

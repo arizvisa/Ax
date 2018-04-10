@@ -1,4 +1,5 @@
-import * as Ax from './ax';
+import * as memory from './memory';
+import * as utils from './utils';
 
 import * as Err from 'errors';
 import './errors';
@@ -37,42 +38,6 @@ Err.create({
     defaultExplanation: 'The specified field was not found.',
     parent: Err.RuntimeError,
 });
-
-/* General utility functions */
-function ofCharCode(n) {
-    switch (n) {
-        case 0:
-            return "\\0";
-        case 1:
-            return "\\1";
-        case 2:
-            return "\\2";
-        case 3:
-            return "\\3";
-        case 4:
-            return "\\4";
-        case 5:
-            return "\\5";
-        case 6:
-            return "\\6";
-        case 7:
-            return "\\a";
-        case 8:
-            return "\\b";
-        case 9:
-            return "\\t";
-        case 10:
-            return "\\n";
-        case 11:
-            return "\\v";
-        case 12:
-            return "\\f";
-        case 13:
-            return "\\r";
-        default:
-            return (n & 0x80 || ((n&31) == n))? `\\x${n.toString(16)}` : String.fromCharCode(n);
-    }
-}
 
 /** Base class for everything **/
 class Jtype {
@@ -155,16 +120,16 @@ export class Jatomic extends Jtype {
                    .join('');
     }
     dump() {
-        const value = Ax.load(this.address, this.size());
+        const value = memory.load(this.address, this.size());
         return Lazy.default(value)
-                   .map(n => Ax.toHex(n))
+                   .map(n => utils.toHex(n))
                    .join(' ');
     }
     summary() {
         return this.value.toString();
     }
     repr() {
-        const [ea, summary] = [Ax.toHex(this.address), this.summary()];
+        const [ea, summary] = [utils.toHex(this.address), this.summary()];
         return `[${ea}] <${this.classname}> : ${summary}`;
     }
     int() {
@@ -178,16 +143,16 @@ export class Jatomicu extends Jatomic {
         let [ofs, cb] = [this.address, this.size()];
         switch (cb) {
             case 1:
-                return Ax.loadui(ofs, 1);
+                return memory.loadui(ofs, 1);
             case 2:
-                return Ax.loadui(ofs, 2);
+                return memory.loadui(ofs, 2);
             case 4:
-                return Ax.loadui(ofs, 4);
+                return memory.loadui(ofs, 4);
             case 8:
-                return Ax.loadui(ofs, 8);
+                return memory.loadui(ofs, 8);
         }
         if (cb <= 8) {
-            const value = Ax.load(ofs, cb);
+            const value = memory.load(ofs, cb);
             return Lazy.default(value)
                        .reverse()
                        .reduce((agg, n) => agg * 256 + n);
@@ -196,7 +161,7 @@ export class Jatomicu extends Jatomic {
     }
     summary() {
         const value = this.value;
-        let [value_x, value_s] = [Ax.toHex(value), value.toString()];
+        let [value_x, value_s] = [utils.toHex(value), value.toString()];
         return `${value_x} (${value_s})`;
     }
 }
@@ -207,17 +172,17 @@ export class Jatomics extends Jatomic {
         let [ofs, cb] = [this.address, this.size()];
         switch (cb) {
             case 1:
-                return Ax.loadsi(ofs, 1);
+                return memory.loadsi(ofs, 1);
             case 2:
-                return Ax.loadsi(ofs, 2);
+                return memory.loadsi(ofs, 2);
             case 4:
-                return Ax.loadsi(ofs, 4);
+                return memory.loadsi(ofs, 4);
             case 8:
-                return Ax.loadsi(ofs, 8);
+                return memory.loadsi(ofs, 8);
         }
         let sf = Math.pow(2, cb*8 - 1);
         if (cb <= 8) {
-            const value = Ax.load(ofs, cb);
+            const value = memory.load(ofs, cb);
             let res = Lazy.default(value)
                           .reverse()
                           .reduce((agg, n) => agg * 256 + n);
@@ -227,7 +192,7 @@ export class Jatomics extends Jatomic {
     }
     summary() {
         const value = this.value;
-        let [value_x, value_s] = [Ax.toHex(value), value.toString()];
+        let [value_x, value_s] = [utils.toHex(value), value.toString()];
         return `${value_x} (${value_s})`;
     }
 }
@@ -245,7 +210,7 @@ export class Jfloat extends Jatomicu {
     }
     summary() {
         const [integral, real] = [this.int(), this.float()];
-        return `${real} (${Ax.toHex(integral)})`;
+        return `${real} (${utils.toHex(integral)})`;
     }
     float() {
         const [sf, exp, fr] = this.Components;
@@ -254,7 +219,7 @@ export class Jfloat extends Jatomicu {
             exponent: exp,
             mantissa: fr,
         };
-        return Ax.of_IEEE754(this.value, format);
+        return memory.of_IEEE754(this.value, format);
     }
 }
 
@@ -278,7 +243,7 @@ export class Jpointer extends Jatomicu {
     }
     summary() {
         const [res, type] = [this.value, this.Type];
-        let [value_x, type_s] = [Ax.toHex(res), type.typename()];  // FIXME: is there a better way to get the classname than calling a constructor?
+        let [value_x, type_s] = [utils.toHex(res), type.typename()];  // FIXME: is there a better way to get the classname than calling a constructor?
         return `${value_x} -> ${type_s}`;
     }
 }
@@ -351,16 +316,16 @@ export class Jcontainer extends Jtype {
         return this._value[index];
     }
     dump() {
-        const value = Ax.load(this.address, this.size());
+        const value = memory.load(this.address, this.size());
         return Lazy.default(value)
-                   .map(n => Ax.toHex(n))
+                   .map(n => utils.toHex(n))
                    .join(' ');
     }
     summary() {
         return this.dump();
     }
     repr() {
-        const [ea, value] = [Ax.toHex(this.address), this.summary()];
+        const [ea, value] = [utils.toHex(this.address), this.summary()];
         return `[${ea}] <${this.classname}> : ${value}`;
     }
 }
@@ -456,7 +421,7 @@ export class Jstruct extends Jcontainer {
 
         let result = [`<${this.classname}>`];
         for (let i = 0; i < value.length; i++) {
-            let [ea_x, [name, _], val] = [Ax.toHex(ea), fields[i], value[i]];
+            let [ea_x, [name, _], val] = [utils.toHex(ea), fields[i], value[i]];
             result.push(`[${ea_x}] "${name}" <${val.classname}> : ${val.summary()}`);
             ea += val.size();
         }
@@ -543,11 +508,11 @@ export class Jstring extends Jarray {
     summary() {
         return Lazy.default(this.value)
                    .map(n => n.value)
-                   .map(ch => ofCharCode(ch))
+                   .map(ch => utils.ofCharCode(ch))
                    .join('');
     }
     repr() {
-        let [ea_x, value_s] = [Ax.toHex(this.address), this.summary()];
+        let [ea_x, value_s] = [utils.toHex(this.address), this.summary()];
         return `[${ea_x}] <${this.classname}> : "${value_s}"`;
     }
 }
@@ -568,11 +533,11 @@ export class Jszstring extends Jtarray {
     summary() {
         return Lazy.default(this.value)
                    .map(n => n.value)
-                   .map(ch => ofCharCode(ch))
+                   .map(ch => utils.ofCharCode(ch))
                    .join('');
     }
     repr() {
-        let [ea_x, value_s] = [Ax.toHex(this.address), this.summary()];
+        let [ea_x, value_s] = [utils.toHex(this.address), this.summary()];
         return `[${ea_x}] <${this.classname}> : "${value_s}"`;
     }
 }
@@ -592,11 +557,11 @@ export class Jwstring extends Jarray {
     summary() {
         return Lazy.default(this.value)
                    .map(n => n.value)
-                   .map(ch => ofCharCode(ch))
+                   .map(ch => utils.ofCharCode(ch))
                    .join('');
     }
     repr() {
-        let [ea_x, value_s] = [Ax.toHex(this.address), this.summary()];
+        let [ea_x, value_s] = [utils.toHex(this.address), this.summary()];
         return `[${ea_x}] <${this.classname}> : "${value_s}"`;
     }
 }
@@ -617,11 +582,11 @@ export class Jszwstring extends Jtarray {
     summary() {
         return Lazy.default(this.value)
                    .map(n => n.value)
-                   .map(ch => ofCharCode(ch))
+                   .map(ch => utils.ofCharCode(ch))
                    .join('');
     }
     repr() {
-        let [ea_x, value_s] = [Ax.toHex(this.address), this.summary()];
+        let [ea_x, value_s] = [utils.toHex(this.address), this.summary()];
         return `[${ea_x}] <${this.classname}> : "${value_s}"`;
     }
 }

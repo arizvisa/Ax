@@ -1,4 +1,4 @@
-import * as utils from './ax';
+import * as utils from './utils';
 import * as J from './jtypes';
 
 /* Native structure definitions */
