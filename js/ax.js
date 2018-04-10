@@ -1,14 +1,19 @@
-// internal ActiveX object for reading things from memory
-export var Ax = new ActiveXObject('Ax.Leaker.1');
+import * as utils from './utils';
 
+import * as L from 'loglevel';
+const Log = L.getLogger('Ax.ax');
+
+// int3 breakpoint using Ax-Control
 export function breakpoint() {
     return Ax.breakpoint();
 }
 
+// Disassemble some address
 export function disassemble(address, count) {
     return Ax.disassemble(address, count);
 }
 
+// Dump some data
 export function dump(address, size, type) {
     return Ax.dump(address, size, type);
 }
@@ -54,7 +59,7 @@ export function mem_type(address) {
 }
 
 /*
- * Backend
+ * Memory Backend
  * Attempt to write an unsigned `integral` of `size` bytes to `address`.
  * Returns the number of bytes successfully written.
  */
@@ -66,7 +71,7 @@ export function store(address, size, integral) {
 }
 
 /*
- * Backend
+ * Memory Backend
  * Attempt to read an unsigned integer of `size` bytes from `address`.
  * Returns a tuple containing the number of bytes read, and the integer.
  */
@@ -86,3 +91,25 @@ export function load(address, size) {
     }
     return undefined;
 }
+
+// internal ActiveX object that this module wraps.
+let ax;
+try {
+    ax = new ActiveXObject('Ax.Leaker.1');
+
+    // assign our Ax-based implementations to the memory backend.
+    global.document.__load__ = load;
+    global.document.__store__ = store;
+
+} catch(e) {
+    Log.error("Unable to instantiate Ax-Control using typename \"Ax.Leaker.1\".");
+
+    // return a dummy object that bitches everytime a property is fetched
+    ax = utils.dummyobject(
+        (target, name) => {
+            Log.warn(`Returning undefined for Ax.${name} due to a missing method.`);
+            return () => undefined;
+        }
+    );
+}
+export const Ax = ax;
