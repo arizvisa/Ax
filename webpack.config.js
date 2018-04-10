@@ -5,6 +5,7 @@ module.exports = {
   devServer: {
     host: '0.0.0.0',
     port: '80',
+    inline: true,
   },
 
   entry: [
@@ -19,6 +20,7 @@ module.exports = {
   },
 
   output: {
+    path: path.resolve(__dirname),
     filename: 'webpack.js'
   },
 
@@ -31,7 +33,7 @@ module.exports = {
       {
         test: /\.js$/,
         enforce: 'pre',
-        exclude: /node_modules/,
+        exclude: path.resolve(__dirname, 'node_modules'),
         use: [
           {
             loader: require.resolve('jshint-loader'),
@@ -80,6 +82,7 @@ module.exports = {
       filename: path.resolve(__dirname, 'index.html'),
       inject: 'head',
       showErrors: true,
+      xhtml: true,
     }),
   ],
 }
