@@ -439,5 +439,10 @@ function __load__(address, size) {
     throw new errors.MissingBackendError('load');
 }
 
-global.document.__store__ = __store__;
-global.document.__load__ = __load__;
+// Check to see if __store__ was defined. Assign a default if not.
+if (!global.document.hasOwnProperty('__store__'))
+    global.document.__store__ = __store__;
+
+// Check to see if __load__ was defined. Assign a default if not.
+if (!global.document.hasOwnProperty('__load__'))
+    global.document.__load__ = __load__;
