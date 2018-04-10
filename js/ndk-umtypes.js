@@ -1,31 +1,59 @@
-import * as Ax from './ax';
+import * as utils from './ax';
 import * as J from './jtypes';
 
-/* Native (Ax) structure definitions */
+/* Native structure definitions */
+class ANSI_STRING__Buffer extends J.Jpointer {
+    get Type() {
+        const fld = this.parent.field('Length');
+        let length = fld.int();
+        class SizedString extends J.Jstring {
+            get Length() {
+                return length;
+            }
+        }
+        return SizedString;
+    }
+}
+
 export class ANSI_STRING extends J.Jstruct {
     static typename() { return 'ANSI_STRING'; }
     get Fields() {
         return [
             ['Length', J.Juint16],
             ['MaximumLength', J.Juint16],
-            ['Buffer', J.Juint32],
+            ['Buffer', ANSI_STRING__Buffer],
         ];
     }
     summary() {
         let length = this.field('Length').int();
         let maxlength = this.field('MaximumLength').int();
-        let ptr = Ax.toHex(this.field('Buffer').int());
+        let ptr = utils.toHex(this.field('Buffer').int());
         let string = this.str();
         return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
     }
     repr() {
-        let ea = Ax.toHex(this.address);
+        let ea = utils.toHex(this.address);
         let value = this.summary();
         return `[${ea}] <${this.constructor.classname}> : "${value}"`;
     }
     str() {
-      // FIXME: extract this ansi string correctly instead of using Ax.
-      return Ax.ansistring(this.address);
+      let fld = this.field('Buffer');
+      let res = fld.d.str();
+      let idx = res.indexOf('\0');
+      return idx > -1? res.slice(0, idx) : res;
+    }
+}
+
+class UNICODE_STRING__Buffer extends J.Jpointer {
+    get Type() {
+        const fld = this.parent.field('Length');
+        let length = fld.int();
+        class SizedString extends J.Jwstring {
+            get Length() {
+                return length;
+            }
+        }
+        return SizedString;
     }
 }
 
@@ -35,23 +63,25 @@ export class UNICODE_STRING extends J.Jstruct {
         return [
             ['Length', J.Juint16],
             ['MaximumLength', J.Juint16],
-            ['Buffer', J.Juint32],
+            ['Buffer', UNICODE_STRING__Buffer],
         ];
     }
     summary() {
         let length = this.field('Length').int();
         let maxlength = this.field('MaximumLength').int();
-        let ptr = Ax.toHex(this.field('Buffer').int());
+        let ptr = utils.toHex(this.field('Buffer').int());
         let string = this.str();
         return `Length=${length} MaxLength=${maxlength} Buffer=${ptr} : ${string}`;
     }
     repr() {
-        let ea = Ax.toHex(this.address);
+        let ea = utils.toHex(this.address);
         let value = this.summary();
         return `[${ea}] <${this.constructor.classname}> : "${value}"`;
     }
     str() {
-      // FIXME: extract this unicode string correctly instead of using Ax.
-      return Ax.unicodestring(this.address);
+      let fld = this.field('Buffer');
+      let res = fld.d.str();
+      let idx = res.indexOf('\0');
+      return idx > -1? res.slice(0, idx) : res;
     }
 }
