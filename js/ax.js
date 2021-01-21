@@ -92,6 +92,25 @@ export function load(address, size) {
     return undefined;
 }
 
+/*
+ * Memory Backend
+ * This simulates a single-byte read from a given address. The
+ * value that is read is always 0.
+ */
+export function fakeload(address, size) {
+    return size > 0? [1, 0] : [0, 0];
+}
+
+/*
+ * Memory Backend
+ * This simulates a write to a given address. As writing isn't
+ * possible, this will always return 0 meaning that 0 bytes
+ * were written.
+ */
+export function fakestore(address, size, integral) {
+    return 0;
+}
+
 // internal ActiveX object that this module wraps.
 let ax;
 try {
@@ -111,5 +130,10 @@ try {
             return () => undefined;
         }
     );
+
+    // assign our dummy implementations to the memory backend.
+    Log.warn(`Assigning fake memory backend due to instantiation failure.`);
+    global.document.__load__ = fakeload;
+    global.document.__store__ = fakestore;
 }
 export const Ax = ax;
